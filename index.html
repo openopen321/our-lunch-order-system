@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✏️ 今天吃什麼？(v4 數量版)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS 樣式 (v4) --- */
+        :root {
+            --bg-color: #FFFBE6; --line-color: #4A3F35;
+            --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
+        }
+        body {
+            font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
+            background-size: 20px 20px; color: var(--line-color); margin: 0; padding: 20px; max-width: 500px; margin: auto;
+            padding-bottom: 80px; /* 預留底部空間 */
+        }
+        h1, h2, h3 { font-weight: normal; text-align: center; margin: 10px 0; }
+        .hand-drawn-box {
+            background: white; border: 3px solid var(--line-color);
+            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+            padding: 20px; box-shadow: 4px 4px 0px var(--line-color); margin-bottom: 25px;
+        }
+        header { transform: rotate(-1deg); text-align: center; margin-bottom: 25px;}
+        header h1 { display: inline-block; border-bottom: 3px dashed var(--line-color); padding-bottom: 5px;}
+        .restaurant-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;}
+
+        /* 多選菜單樣式 (含數量) */
+        .menu-list-vertical { display: flex; flex-direction: column; gap: 15px; }
+        .menu-item-checkbox {
+            border: 2px solid var(--line-color); border-radius: 15px; background: white;
+            overflow: hidden; transition: all 0.2s;
+        }
+        .menu-item-header {
+            display: flex; align-items: center; padding: 10px 15px; cursor: pointer;
+        }
+        .menu-item-checkbox.selected { background: var(--accent-yellow); box-shadow: 3px 3px 0px var(--line-color); }
+        .checkbox-square {
+            width: 20px; height: 20px; border: 2px solid var(--line-color); margin-right: 15px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+        }
+        .menu-item-checkbox.selected .checkbox-square::after { content: '✓'; }
+        .food-info { flex-grow: 1; font-size: 1.1rem; }
+        
+        /* 備註與數量輸入區 (預設隱藏) */
+        .item-details-container {
+            display: none; padding: 10px 15px; background: rgba(255,255,255,0.5);
+            border-top: 2px dashed var(--line-color);
+        }
+        .menu-item-checkbox.selected .item-details-container { display: block; }
+        .note-input {
+            width: 100%; padding: 8px; border: 2px solid var(--line-color); border-radius: 8px;
+            font-family: inherit; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px;
+        }
+        .quantity-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-weight: bold;}
+        .qty-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line-color); background: white; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;}
+        .qty-btn:active { background: var(--accent-yellow); }
+
+        /* 用戶輸入區 */
+        .user-input-section { padding: 15px; background: var(--accent-blue); border-radius: 20px; border: 3px dashed var(--line-color); }
+        input[type="text"] {
+            width: 100%; padding: 10px; border: 2px solid var(--line-color); border-radius: 10px;
+            font-family: inherit; font-size: 1rem; box-sizing: border-box; margin-bottom: 15px;
+        }
+        .avatar-selector { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;}
+        .avatar-option {
+            width: 40px; height: 40px; font-size: 1.5rem; border: 2px solid transparent;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
+            background: white; border-color: var(--line-color);
+        }
+        .avatar-option.selected { background: var(--accent-yellow); transform: scale(1.1); box-shadow: 2px 2px 0 var(--line-color); }
+
+        .submit-btn {
+            background: var(--accent-pink); border: 3px solid var(--line-color);
+            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+            padding: 12px; font-size: 1.3rem; font-family: inherit; cursor: pointer;
+            box-shadow: 3px 3px 0px var(--line-color); width: 100%; font-weight: bold;
+        }
+        .submit-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--line-color); }
+        .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none;}
+
+        /* 底部狀況列表 */
+        .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed var(--line-color); padding-bottom: 10px; margin-bottom: 10px;}
+        .status-list { list-style: none; padding: 0; max-height: 300px; overflow-y: auto;}
+        .status-item {
+            padding: 10px 0; border-bottom: 2px dashed #ddd; font-size: 1rem;
+        }
+        .status-user-row { display: flex; align-items: center; font-weight: bold; margin-bottom: 5px;}
+        .status-avatar { font-size: 1.2rem; margin-right: 8px; }
+        .status-items-detail { padding-left: 30px; font-size: 0.95rem; opacity: 0.9; }
+        .item-note { background: #eee; padding: 2px 5px; border-radius: 5px; margin-left: 5px; font-size: 0.8rem; color: #555;}
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>✏️ 今天吃什麼？</h1>
+        <div id="restaurant-name-display" class="restaurant-name"></div>
+        <div id="restaurant-phone" style="font-size: 0.9rem; margin-top: 5px;"></div>
+    </header>
+
+    <main class="hand-drawn-box">
+        <h2>今日菜單 Menu (可選數量)</h2>
+        <div id="menu-list-container" class="menu-list-vertical">
+            <p style="text-align: center;">正在載入菜單...</p>
+        </div>
+
+        <hr style="border: none; border-top: 2px dashed var(--line-color); margin: 25px 0;">
+
+        <div class="user-input-section">
+            <h3 style="margin-top: 0;">輪到你點餐了：</h3>
+            <input type="text" id="username-input" placeholder="請輸入你的名字 (例如：小陳)">
+            
+            <p style="text-align: center; margin: 5px 0;">選擇一個代表你的頭像：</p>
+            <div class="avatar-selector" id="avatar-selector">
+                <div class="avatar-option" onclick="selectAvatar(this, '🐻')">🐻</div>
+                <div class="avatar-option" onclick="selectAvatar(this, '🐰')">🐰</div>
+                <div class="avatar-option" onclick="selectAvatar(this, '🐱')">🐱</div>
+                <div class="avatar-option" onclick="selectAvatar(this, '🐶')">🐶</div>
+                <div class="avatar-option" onclick="selectAvatar(this, '🦊')">🦊</div>
+                <div class="avatar-option" onclick="selectAvatar(this, '🐷')">🐷</div>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 10px; font-weight: bold;">
+                總計： $<span id="personal-total">0</span>
+            </div>
+
+            <button id="submit-btn" class="submit-btn" disabled>✅ 送出訂單</button>
+        </div>
+    </main>
+
+    <section class="hand-drawn-box" style="background: var(--accent-green);">
+        <div class="status-header">
+            <h2>點餐狀況 (本場次)</h2>
+            <span style="font-size: 0.9rem;">(<span id="total-people-count">0</span> 人已點)</span>
+        </div>
+        <ul id="live-status-list" class="status-list">
+            <p style="text-align: center; opacity: 0.7;">目前還沒有人點餐...</p>
+        </ul>
+    </section>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, collection, addDoc, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥🔥🔥 【重要】請貼上您的 firebaseConfig 🔥🔥🔥
+const firebaseConfig = {
+  apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
+  authDomain: "cute-lunch-order.firebaseapp.com",
+  projectId: "cute-lunch-order",
+  storageBucket: "cute-lunch-order.firebasestorage.app",
+  messagingSenderId: "62115069448",
+  appId: "1:62115069448:web:212231a6452f87a3d69bbd",
+  measurementId: "G-DWMWFSHQPX"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- 變數與 DOM ---
+        let selectedAvatarChar = null;
+        // 存放目前使用者選中的餐點 Map: key=itemName, value={originalItem, noteInputDOM, quantityDOM}
+        let currentSelectionsMap = new Map();
+        let currentSessionId = null;
+        let unsubscribeOrders = null;
+
+        const menuContainer = document.getElementById('menu-list-container');
+        const restaurantNameDisplay = document.getElementById('restaurant-name-display');
+        const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
+        const usernameInput = document.getElementById('username-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const personalTotalDisplay = document.getElementById('personal-total');
+        const liveStatusList = document.getElementById('live-status-list');
+        const totalPeopleCountSpan = document.getElementById('total-people-count');
+
+
+        // --- 1. 監聽並渲染今日菜單 ---
+        onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                restaurantNameDisplay.textContent = data.restaurantName || '今日餐廳';
+                restaurantPhoneDisplay.textContent = data.restaurantPhone ? `📞 電話: ${data.restaurantPhone}` : '';
+                renderMenuList(data.menuItems || []);
+
+                currentSessionId = data.sessionId;
+                if (currentSessionId) {
+                    setupOrderListener(currentSessionId);
+                }
+            } else {
+                menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
+            }
+        });
+
+        function renderMenuList(items) {
+            menuContainer.innerHTML = '';
+            currentSelectionsMap.clear();
+            updatePersonalSummary();
+
+            items.forEach((item) => {
+                const el = document.createElement('div');
+                el.classList.add('menu-item-checkbox');
+                // 新增數量控制介面
+                el.innerHTML = `
+                    <div class="menu-item-header">
+                        <div class="checkbox-square"></div>
+                        <div class="food-info">${item.name} <b>$${item.price}</b></div>
+                    </div>
+                    <div class="item-details-container">
+                        <input type="text" class="note-input" placeholder="備註 (例如: 加辣, 飯少)">
+                        <div class="quantity-controls">
+                            數量: 
+                            <button class="qty-btn minus">-</button>
+                            <span class="qty-display">1</span>
+                            <button class="qty-btn plus">+</button>
+                        </div>
+                    </div>
+                `;
+                
+                const header = el.querySelector('.menu-item-header');
+                const noteInput = el.querySelector('.note-input');
+                const qtyDisplay = el.querySelector('.qty-display');
+                const minusBtn = el.querySelector('.minus');
+                const plusBtn = el.querySelector('.plus');
+
+                // 點擊 Header 切換選擇狀態
+                header.addEventListener('click', () => {
+                    el.classList.toggle('selected');
+                    if (el.classList.contains('selected')) {
+                        currentSelectionsMap.set(item.name, { originalItem: item, noteInputDOM: noteInput, quantityDOM: qtyDisplay });
+                        qtyDisplay.textContent = '1'; // 預設數量為 1
+                    } else {
+                        currentSelectionsMap.delete(item.name);
+                        noteInput.value = ''; 
+                    }
+                    updatePersonalSummary();
+                    checkSubmitButtonState();
+                });
+
+                // 數量增減事件 (阻止冒泡以免觸發 header click)
+                minusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, -1); });
+                plusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, 1); });
+
+                menuContainer.appendChild(el);
+            });
+        }
+
+        // 處理數量變更
+        function changeQuantity(itemName, delta) {
+            const selection = currentSelectionsMap.get(itemName);
+            if (!selection) return;
+            let currentQty = parseInt(selection.quantityDOM.textContent);
+            let newQty = currentQty + delta;
+            if (newQty < 1) newQty = 1; // 最少為 1
+            selection.quantityDOM.textContent = newQty;
+            updatePersonalSummary();
+        }
+
+        function updatePersonalSummary() {
+            let total = 0;
+            currentSelectionsMap.forEach(sel => {
+                const qty = parseInt(sel.quantityDOM.textContent);
+                total += sel.originalItem.price * qty;
+            });
+            personalTotalDisplay.textContent = total;
+        }
+
+        // --- 2. 用戶輸入互動 ---
+        window.selectAvatar = (element, char) => {
+            document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedAvatarChar = char;
+            checkSubmitButtonState();
+        }
+
+        function checkSubmitButtonState() {
+            if (selectedAvatarChar && usernameInput.value.trim() !== '' && currentSelectionsMap.size > 0 && currentSessionId) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+        usernameInput.addEventListener('input', checkSubmitButtonState);
+
+        // --- 3. 送出訂單 (包含數量) ---
+        submitBtn.addEventListener('click', async () => {
+            if (submitBtn.disabled) return;
+            if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
+            
+            const userName = usernameInput.value.trim();
+            submitBtn.textContent = '正在送出...';
+            submitBtn.disabled = true;
+
+            const itemsToOrder = [];
+            let totalCost = 0;
+            
+            // 打包訂單資料
+            currentSelectionsMap.forEach(sel => {
+                const qty = parseInt(sel.quantityDOM.textContent);
+                itemsToOrder.push({
+                    name: sel.originalItem.name,
+                    price: sel.originalItem.price,
+                    note: sel.noteInputDOM.value.trim(),
+                    quantity: qty // <--- 新增數量欄位
+                });
+                totalCost += sel.originalItem.price * qty;
+            });
+
+            try {
+                await addDoc(collection(db, "todayOrders"), {
+                    sessionId: currentSessionId,
+                    userName: userName,
+                    userAvatar: selectedAvatarChar,
+                    items: itemsToOrder,
+                    totalCost: totalCost,
+                    paidAmount: 0,
+                    orderTime: serverTimestamp()
+                });
+                alert(`✅ ${userName}，訂單送出成功！`);
+                window.location.reload(); 
+            } catch (e) {
+                alert('❌ 訂購失敗：' + e.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = '✅ 送出訂單';
+            }
+        });
+
+        // --- 4. 即時監聽點餐狀況 (顯示數量) ---
+        function setupOrderListener(sessionId) {
+            if (unsubscribeOrders) unsubscribeOrders();
+            const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
+
+            unsubscribeOrders = onSnapshot(q, (querySnapshot) => {
+                liveStatusList.innerHTML = '';
+                totalPeopleCountSpan.textContent = querySnapshot.size;
+
+                if (querySnapshot.empty) {
+                    liveStatusList.innerHTML = '<p style="text-align: center; opacity: 0.7;">目前還沒有人點餐...</p>';
+                    return;
+                }
+                querySnapshot.forEach((doc) => {
+                    const order = doc.data();
+                    const li = document.createElement('li');
+                    li.classList.add('status-item');
+                    
+                    // 顯示餐點詳情 (包含數量)
+                    let itemsHtml = order.items.map(item => {
+                        const noteHtml = item.note ? `<span class="item-note">${item.note}</span>` : '';
+                        // 如果數量大於 1 才顯示 "x N"
+                        const qtyHtml = item.quantity > 1 ? ` <b>x${item.quantity}</b>` : '';
+                        return `<div>- ${item.name}${qtyHtml} ${noteHtml}</div>`;
+                    }).join('');
+
+                    li.innerHTML = `
+                        <div class="status-user-row">
+                            <span class="status-avatar">${order.userAvatar}</span>
+                            <span>${order.userName} (總計: $${order.totalCost})</span>
+                        </div>
+                        <div class="status-items-detail">${itemsHtml}</div>
+                    `;
+                    liveStatusList.appendChild(li);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 訂便當管理後台 v4 (完整功能版)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS v4 */
+        :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; }
+        body {
+            font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color); color: var(--line-color);
+            padding: 20px; max-width: 950px; margin: auto;
+        }
+        h1, h2 { text-align: center; border-bottom: 3px dashed var(--line-color); padding-bottom: 10px; margin-top: 0; }
+        header { text-align: center; margin-bottom: 20px; }
+        .session-info { font-size: 0.9rem; color: #666; margin-top: 5px;}
+        .admin-box {
+            background: white; border: 3px solid var(--line-color); padding: 20px;
+            box-shadow: 4px 4px 0px var(--line-color); border-radius: 10px; margin-bottom: 30px;
+        }
+        /* 表格樣式 */
+        .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem;}
+        .order-table th, .order-table td { border: 2px solid var(--line-color); padding: 8px; text-align: center; vertical-align: middle;}
+        .order-table th { background: var(--accent-yellow); }
+        .text-left { text-align: left !important; }
+        .item-note { background: #eee; padding: 1px 4px; border-radius: 4px; font-size: 0.8rem; color: #666; }
+        
+        /* 付款狀態顏色 */
+        .paid-input { width: 70px; padding: 5px; border: 2px solid #ccc; border-radius: 5px; text-align: center; font-weight: bold;}
+        .status-paid { color: green; font-weight: bold; }
+        .status-debt { color: red; font-weight: bold; background: #ffe6e6;} /* 欠款(紅) */
+        .status-change { color: blue; font-weight: bold; background: #e6f0ff;} /* 找零(藍) */
+        .row-fully-paid { background-color: #e6ffe6; opacity: 0.8; }
+
+        /* 統整區樣式 */
+        .summary-header-info { font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.2);}
+        .summary-list { list-style: disc; padding-left: 40px; }
+        .summary-list li { margin-bottom: 8px; font-size: 1.1rem; }
+        .summary-notes { font-size: 0.9rem; color: #666; display: block; margin-top: 2px;}
+        
+        /* 歷史紀錄列表 */
+        .history-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto;}
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd;}
+        .history-info { flex-grow: 1; }
+        .btn-load { background: var(--accent-blue); border: 2px solid var(--line-color); padding: 5px 10px; cursor: pointer; font-size: 0.9rem; border-radius: 5px;}
+
+        textarea { width: 100%; height: 100px; border: 2px solid var(--line-color); padding: 5px; font-family: monospace; box-sizing: border-box;}
+        .btn { background: var(--accent-yellow); border: 2px solid var(--line-color); padding: 8px 15px; cursor: pointer; font-weight: bold; box-shadow: 2px 2px 0 var(--line-color); }
+        .btn:active { transform: translate(1px, 1px); box-shadow: none; }
+        .btn-new-session { background: var(--accent-pink); font-size: 1.1rem; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔧 管理後台 v4 (完整功能版)</h1>
+        <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold;"></div>
+        <div id="current-session-id" class="session-info">載入中...</div>
+        <div style="text-align: right; margin-top: 10px;">
+            <a href="index.html" target="_blank" style="text-decoration: none;">➡️ 前往點餐頁面</a>
+        </div>
+    </header>
+
+    <section class="admin-box" style="background: var(--accent-pink);">
+        <h2>☎️ 打電話用：訂單統整區 (當前場次)</h2>
+        <div id="summary-header" class="summary-header-info">讀取中...</div>
+        <ul id="aggregated-order-list" class="summary-list">
+            <li>計算中...</li>
+        </ul>
+    </section>
+
+    <section class="admin-box">
+        <h2>💰 訂單明細與付款管理 (當前場次)</h2>
+        <table class="order-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">訂購人</th>
+                    <th style="width: 45%;">餐點明細 (數量/備註)</th>
+                    <th style="width: 10%;">應付</th>
+                    <th style="width: 15%;">已付 (可編輯)</th>
+                    <th style="width: 15%;">餘額狀態</th>
+                </tr>
+            </thead>
+            <tbody id="order-table-body">
+                </tbody>
+            <tfoot>
+                <tr style="font-weight: bold; background: #f0f0f0;">
+                    <td colspan="2" style="text-align: right;">當前場次合計:</td>
+                    <td>$<span id="grand-total-due">0</span></td>
+                    <td>$<span id="grand-total-paid">0</span></td>
+                    <td style="color: red;">$<span id="grand-total-debt">0</span> (未收)</td>
+                </tr>
+            </tfoot>
+        </table>
+    </section>
+
+    <section class="admin-box" style="background: #f9f9f9;">
+        <h2>📜 歷史餐廳紀錄 (點過的都會存在這)</h2>
+        <ul id="history-list" class="history-list">
+            <p>正在載入歷史紀錄...</p>
+        </ul>
+    </section>
+
+    <section class="admin-box">
+        <h2>📤 開啟新團購 & 發布菜單</h2>
+        <p style="font-size: 0.9rem; color: #d9534f;">注意：請使用新的 AI 提示詞格式 (包含 restaurantName)。</p>
+        <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName): {"restaurantName": "...", "restaurantPhone": "...", "menuItems": [...]}'></textarea>
+        <button id="publish-btn" class="btn btn-new-session" style="margin-top: 10px;">🚀 發布新菜單 (開啟新場次)</button>
+    </section>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        // 引入 increment 用於計數
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥🔥🔥 【重要】請貼上您的 firebaseConfig 🔥🔥🔥
+const firebaseConfig = {
+  apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
+  authDomain: "cute-lunch-order.firebaseapp.com",
+  projectId: "cute-lunch-order",
+  storageBucket: "cute-lunch-order.firebasestorage.app",
+  messagingSenderId: "62115069448",
+  appId: "1:62115069448:web:212231a6452f87a3d69bbd",
+  measurementId: "G-DWMWFSHQPX"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // DOM
+        const adminRestaurantName = document.getElementById('admin-restaurant-name');
+        const currentSessionIdDisplay = document.getElementById('current-session-id');
+        const summaryHeader = document.getElementById('summary-header');
+        const aggregatedListEl = document.getElementById('aggregated-order-list');
+        const orderTableBody = document.getElementById('order-table-body');
+        const grandTotalDueEl = document.getElementById('grand-total-due');
+        const grandTotalPaidEl = document.getElementById('grand-total-paid');
+        const grandTotalDebtEl = document.getElementById('grand-total-debt');
+        const adminJsonInput = document.getElementById('admin-json-input');
+        const publishBtn = document.getElementById('publish-btn');
+        const historyListEl = document.getElementById('history-list');
+
+        let currentSessionId = null;
+        let unsubscribeOrders = null;
+        let currentMenuData = null; // 暫存菜單資料
+
+        // --- A. 監聽菜單資訊 (顯示名稱/場次) ---
+        onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
+            if (docSnap.exists()) {
+                currentMenuData = docSnap.data();
+                // 顯示餐廳名稱
+                adminRestaurantName.textContent = currentMenuData.restaurantName || '今日餐廳';
+                currentSessionId = currentMenuData.sessionId || 'unknown_session';
+                currentSessionIdDisplay.textContent = `場次 ID: ${currentSessionId}`;
+                
+                // 更新統整區 header (日期/電話)
+                let dateStr = '未知日期';
+                if (currentMenuData.updatedAt) {
+                    dateStr = new Date(currentMenuData.updatedAt.seconds * 1000).toLocaleString('zh-TW');
+                }
+                summaryHeader.innerHTML = `
+                    訂餐日期: ${dateStr}<br>
+                    餐廳電話: ${currentMenuData.restaurantPhone || '(無)'}
+                `;
+
+                setupOrderListener(currentSessionId);
+            } else {
+                adminRestaurantName.textContent = '尚未發布';
+                summaryHeader.textContent = '等待發布菜單...';
+            }
+        });
+
+        // --- B. 發布新菜單 & 儲存歷史 ---
+        publishBtn.addEventListener('click', async () => {
+            const jsonString = adminJsonInput.value.trim();
+            if (!jsonString) { alert('請先貼上 JSON！'); return; }
+            const newSessionId = 'session_' + Date.now();
+
+            try {
+                const menuData = JSON.parse(jsonString);
+                // 1. 發布到 dailyData
+                await setDoc(doc(db, "dailyData", "menu"), {
+                    ...menuData,
+                    sessionId: newSessionId,
+                    updatedAt: serverTimestamp()
+                });
+
+                // 2. 儲存到歷史紀錄 (使用餐廳名稱作為 ID)
+                const restaurantName = menuData.restaurantName || '未知餐廳';
+                const historyRef = doc(db, 'restaurantHistory', restaurantName);
+                await setDoc(historyRef, {
+                    restaurantName: restaurantName,
+                    restaurantPhone: menuData.restaurantPhone || '',
+                    menuItems: menuData.menuItems,
+                    lastUsed: serverTimestamp(),
+                    orderCount: increment(1) // 使用次數 +1
+                }, { merge: true }); // 使用 merge 以免覆蓋次數
+
+                alert(`✅ 新場次開啟成功！已加入歷史紀錄。`);
+                adminJsonInput.value = '';
+            } catch (e) { alert('❌ 發布失敗：' + e.message); }
+        });
+
+        // --- C. 監聽歷史紀錄 (列表顯示) ---
+        const historyQ = query(collection(db, 'restaurantHistory'), orderBy('lastUsed', 'desc'));
+        onSnapshot(historyQ, (snapshot) => {
+            historyListEl.innerHTML = '';
+            if (snapshot.empty) {
+                 historyListEl.innerHTML = '<p>尚無歷史紀錄</p>'; return;
+            }
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const li = document.createElement('li');
+                li.classList.add('history-item');
+                li.innerHTML = `
+                    <div class="history-info">
+                        <strong>${data.restaurantName}</strong> (點過 ${data.orderCount || 1} 次)<br>
+                        <span style="font-size: 0.9rem;">電話: ${data.restaurantPhone}</span>
+                    </div>
+                    <button class="btn-load">載入菜單</button>
+                `;
+                // 綁定載入按鈕事件
+                li.querySelector('.btn-load').addEventListener('click', () => {
+                    // 將歷史資料轉換回 JSON 格式填入輸入框
+                    const jsonToLoad = {
+                        restaurantName: data.restaurantName,
+                        restaurantPhone: data.restaurantPhone,
+                        menuItems: data.menuItems
+                    };
+                    adminJsonInput.value = JSON.stringify(jsonToLoad, null, 2); // 美化格式
+                    // 捲動到輸入框
+                    adminJsonInput.scrollIntoView({ behavior: 'smooth' });
+                });
+                historyListEl.appendChild(li);
+            });
+        });
+
+
+        // --- D. 訂單監聽與渲染 (更新付款邏輯與統整) ---
+        function setupOrderListener(sessionId) {
+            if (unsubscribeOrders) unsubscribeOrders();
+            const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
+
+            unsubscribeOrders = onSnapshot(q, (querySnapshot) => {
+                renderOrders(querySnapshot);
+            });
+        }
+
+        function renderOrders(querySnapshot) {
+            orderTableBody.innerHTML = '';
+            let currentOrdersData = [];
+            let stats = { totalDue: 0, totalPaid: 0 };
+
+            if (querySnapshot.empty) {
+                orderTableBody.innerHTML = '<tr><td colspan="5">當前場次尚無訂單</td></tr>';
+                aggregatedListEl.innerHTML = '<li>尚未有訂單</li>';
+                updateFooterStats(0, 0);
+                return;
+            }
+
+            querySnapshot.forEach((docSnap) => {
+                const order = docSnap.data();
+                if (!order.items || !Array.isArray(order.items)) return;
+                order.id = docSnap.id;
+                currentOrdersData.push(order);
+
+                stats.totalDue += order.totalCost;
+                const paidAmount = Number(order.paidAmount) || 0;
+                stats.totalPaid += paidAmount;
+                const remaining = order.totalCost - paidAmount;
+                
+                // 判斷狀態
+                const isFullyPaid = remaining === 0 && order.totalCost > 0;
+                let statusHtml = '<span class="status-paid">已付清</span>';
+                if (remaining > 0) {
+                     statusHtml = `<span class="status-debt">未付: $${remaining}</span>`;
+                } else if (remaining < 0) {
+                     // 負數代表要找錢
+                     statusHtml = `<span class="status-change">需找回: $${Math.abs(remaining)}</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                if (isFullyPaid) tr.classList.add('row-fully-paid');
+
+                // 顯示餐點明細 (含數量)
+                const itemsDetails = order.items.map(item => {
+                    const qtyStr = item.quantity > 1 ? ` <b>x${item.quantity}</b>` : '';
+                    const noteStr = item.note ? ` <span class="item-note">(${item.note})</span>` : '';
+                    return `${item.name}${qtyStr}${noteStr}`;
+                }).join('<br>');
+
+                tr.innerHTML = `
+                    <td>${order.userAvatar} ${order.userName}</td>
+                    <td class="text-left">${itemsDetails}</td>
+                    <td>$${order.totalCost}</td>
+                    <td>
+                        <input type="number" class="paid-input" value="${paidAmount}" min="0" 
+                               onchange="updatePaidAmount('${order.id}', this.value)">
+                    </td>
+                    <td>${statusHtml}</td>
+                `;
+                orderTableBody.appendChild(tr);
+            });
+            
+            updateFooterStats(stats.totalDue, stats.totalPaid);
+            calculateAggregation(currentOrdersData);
+        }
+
+        function updateFooterStats(due, paid) {
+            grandTotalDueEl.textContent = due;
+            grandTotalPaidEl.textContent = paid;
+            // 這裡只統計正向債務 (還差多少錢)
+            const debt = due - paid;
+            grandTotalDebtEl.textContent = debt > 0 ? debt : 0;
+        }
+
+        window.updatePaidAmount = async (orderId, newValue) => {
+            const amount = Number(newValue);
+            if (isNaN(amount)) { alert('請輸入有效的金額'); return; }
+            try { await updateDoc(doc(db, "todayOrders", orderId), { paidAmount: amount }); } 
+            catch (e) { alert('更新失敗：' + e.message); }
+        }
+
+        // --- E. 訂單統整邏輯 (更新：加總數量) ---
+        function calculateAggregation(orders) {
+            const summaryMap = {};
+            let totalItemsCount = 0; // 總份數
+
+            orders.forEach(order => {
+                order.items.forEach(item => {
+                    const qty = item.quantity || 1;
+                    totalItemsCount += qty; // 加總份數
+
+                    if (!summaryMap[item.name]) summaryMap[item.name] = { count: 0, notes: [] };
+                    // 加總該品項的數量
+                    summaryMap[item.name].count += qty;
+                    if (item.note) {
+                        // 備註也要標示數量
+                        summaryMap[item.name].notes.push(`${qty}份: ${item.note}`);
+                    }
+                });
+            });
+
+            aggregatedListEl.innerHTML = '';
+            if (Object.keys(summaryMap).length === 0) {
+                aggregatedListEl.innerHTML = '<li>當前場次尚無訂單</li>'; return;
+            }
+            
+            // 新增總份數顯示
+            const totalLi = document.createElement('li');
+            totalLi.innerHTML = `<strong>📊 總共訂購：${totalItemsCount} 份餐點</strong><hr style="margin: 5px 0; border-top: 1px dashed #ccc;">`;
+            aggregatedListEl.appendChild(totalLi);
+
+            for (const [foodName, data] of Object.entries(summaryMap)) {
+                const li = document.createElement('li');
+                let noteDisplay = data.notes.length > 0 ? `<span class="summary-notes">備註: ${data.notes.join('; ')}</span>` : '';
+                li.innerHTML = `<b>${foodName}</b> x ${data.count} 份 ${noteDisplay}`;
+                aggregatedListEl.appendChild(li);
+            }
+        }
+    </script>
+</body>
+</html>
