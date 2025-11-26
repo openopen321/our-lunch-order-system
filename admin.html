@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 v5.1 (樣式修正版)</title>
+    <title>🔧 管理後台 v7.1 (專屬配置版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- CSS v5.1 (整合修正版) --- */
-        :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #ffcccc; --success-green: #c7edb6; }
+        /* --- CSS v7.1 --- */
+        :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #ffcccc; --success-green: #c7edb6; --warning-orange: #ffeeba; }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color); color: var(--line-color);
@@ -58,14 +58,14 @@
         .history-info { flex-grow: 1; }
         
         /* 發布區樣式 */
-        textarea { width: 100%; height: 100px; border: 2px solid var(--line-color); padding: 5px; font-family: monospace; box-sizing: border-box;}
+        textarea { width: 100%; height: 150px; border: 2px solid var(--line-color); padding: 5px; font-family: monospace; box-sizing: border-box;}
         .time-input-container { margin: 15px 0; padding: 15px; background: var(--accent-blue); border-radius: 10px; border: 2px dashed var(--line-color); text-align: center; display: flex; align-items: center; justify-content: center;}
         input[type="time"] { padding: 5px 10px; font-size: 1.2rem; border: 2px solid var(--line-color); border-radius: 5px; font-family: inherit; margin-left: 10px;}
     </style>
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 v5.1 (樣式修正版)</h1>
+        <h1>🔧 管理後台 v7.1 (專屬配置版)</h1>
         <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold;"></div>
         <div class="session-info">
             <span id="current-session-id">載入中...</span>
@@ -79,9 +79,6 @@
              <p style="margin: 5px 0; font-weight: bold;">手動結單控制</p>
              <button id="btn-close-order" class="btn btn-close-order" disabled>載入中...</button>
              <p style="font-size: 0.8rem; margin: 5px 0 0 0; color: #666;">(可強制鎖定或重新開放前台點餐)</p>
-        </div>
-        <div>
-            <a href="index.html" target="_blank" class="btn" style="text-decoration: none; background: var(--accent-blue); display: inline-block; margin-top: 20px;">➡️ 前往點餐頁面</a>
         </div>
     </div>
 
@@ -128,12 +125,13 @@
 
     <section class="admin-box">
         <h2>📤 開啟新團購 & 發布菜單</h2>
-        <p style="font-size: 0.9rem; color: #d9534f;">注意：發布新菜單會自動開啟新場次，並將手動狀態重置為「開放中」。</p>
-        <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName): {"restaurantName": "...", "restaurantPhone": "...", "menuItems": [...]}'></textarea>
+        <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。系統會自動在背景比對變更。</p>
+        <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
         
         <div class="time-input-container">
             <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
-            <input type="time" id="deadline-time-input" value="11:30"> </div>
+            <input type="time" id="deadline-time-input" value="11:30">
+        </div>
 
         <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
     </section>
@@ -142,16 +140,16 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥🔥🔥 【重要】請貼上您的 firebaseConfig 🔥🔥🔥
-const firebaseConfig = {
-  apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
-  authDomain: "cute-lunch-order.firebaseapp.com",
-  projectId: "cute-lunch-order",
-  storageBucket: "cute-lunch-order.firebasestorage.app",
-  messagingSenderId: "62115069448",
-  appId: "1:62115069448:web:212231a6452f87a3d69bbd",
-  measurementId: "G-DWMWFSHQPX"
-};
+        // 🔥🔥🔥 已自動填入您的 firebaseConfig 🔥🔥🔥
+        const firebaseConfig = {
+          apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
+          authDomain: "cute-lunch-order.firebaseapp.com",
+          projectId: "cute-lunch-order",
+          storageBucket: "cute-lunch-order.firebasestorage.app",
+          messagingSenderId: "62115069448",
+          appId: "1:62115069448:web:212231a6452f87a3d69bbd",
+          measurementId: "G-DWMWFSHQPX"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -190,7 +188,6 @@ const firebaseConfig = {
                 statusBadge.style.display = 'inline-block';
                 btnCloseOrder.disabled = false;
 
-                // 顯示截止時間
                 if (currentMenuData.deadlineTime) {
                     deadlineDisplay.textContent = `(今日截止時間: ${currentMenuData.deadlineTime})`;
                 } else {
@@ -237,37 +234,108 @@ const firebaseConfig = {
             }
         });
 
-        // --- B. 發布新菜單 (含截止時間) ---
+        // --- B. 發布新菜單 (自動比對並儲存結果) ---
         publishBtn.addEventListener('click', async () => {
             const jsonString = adminJsonInput.value.trim();
             const deadlineTime = deadlineTimeInput.value;
             if (!jsonString) { alert('請先貼上 JSON！'); return; }
+
+            publishBtn.textContent = '正在處理比對與發布...';
+            publishBtn.disabled = true;
             
             const newSessionId = 'session_' + Date.now();
             try {
-                const menuData = JSON.parse(jsonString);
-                await setDoc(doc(db, "dailyData", "menu"), {
-                    ...menuData,
+                const newMenuData = JSON.parse(jsonString);
+
+                // 1. 抓取舊菜單資料
+                const oldDocSnap = await getDoc(doc(db, "dailyData", "menu"));
+                const oldMenuData = oldDocSnap.exists() ? oldDocSnap.data() : null;
+
+                // 2. 執行自動比對，產生摘要
+                const comparisonSummary = generateComparisonSummary(oldMenuData, newMenuData);
+                
+                // 3. 準備要儲存的資料物件 (包含比對結果)
+                const dataToSave = {
+                    restaurantName: newMenuData.restaurantName || '未知餐廳',
+                    restaurantPhone: newMenuData.restaurantPhone || '',
                     sessionId: newSessionId,
                     isOrderClosed: false,
                     deadlineTime: deadlineTime,
-                    updatedAt: serverTimestamp()
-                });
-                const restaurantName = menuData.restaurantName || '未知餐廳';
-                await setDoc(doc(db, 'restaurantHistory', restaurantName), {
-                    restaurantName: restaurantName,
-                    restaurantPhone: menuData.restaurantPhone || '',
-                    menuItems: menuData.menuItems,
+                    updatedAt: serverTimestamp(),
+                    comparisonSummary: comparisonSummary
+                };
+
+                if (newMenuData.menuCategories) dataToSave.menuCategories = newMenuData.menuCategories;
+                else if (newMenuData.menuItems) dataToSave.menuItems = newMenuData.menuItems;
+
+                // 4. 寫入 dailyData
+                await setDoc(doc(db, "dailyData", "menu"), dataToSave);
+
+                // 5. 儲存到歷史紀錄
+                const historyData = {
+                    restaurantName: dataToSave.restaurantName,
+                    restaurantPhone: dataToSave.restaurantPhone,
                     lastUsed: serverTimestamp(),
                     orderCount: increment(1)
-                }, { merge: true });
+                };
+                if (newMenuData.menuCategories) historyData.menuCategories = newMenuData.menuCategories;
+                else if (newMenuData.menuItems) historyData.menuItems = newMenuData.menuItems;
 
-                alert(`✅ 新場次開啟成功！截止時間設定為 ${deadlineTime}。`);
+                await setDoc(doc(db, 'restaurantHistory', dataToSave.restaurantName), historyData, { merge: true });
+
+                alert(`✅ 新場次開啟成功！截止時間 ${deadlineTime}。`);
                 adminJsonInput.value = '';
-            } catch (e) { alert('❌ 發布失敗：' + e.message); }
+            } catch (e) { 
+                alert('❌ 發布失敗：' + e.message); 
+            } finally {
+                publishBtn.textContent = '🚀 發布新菜單 (開啟新場次)';
+                publishBtn.disabled = false;
+            }
         });
 
-        // --- C. 監聽歷史紀錄 (不變) ---
+        // 自動比對函數
+        function generateComparisonSummary(oldData, newData) {
+            if (!oldData || oldData.restaurantName !== newData.restaurantName) {
+                return null;
+            }
+            const oldMap = flattenMenu(oldData);
+            const newMap = flattenMenu(newData);
+            const summary = { newItems: [], changedItems: [], removedItems: [] };
+            let hasChanges = false;
+
+            newMap.forEach((price, name) => {
+                if (!oldMap.has(name)) {
+                    summary.newItems.push({ name, price });
+                    hasChanges = true;
+                } else if (oldMap.get(name) !== price) {
+                    summary.changedItems.push({ name, oldPrice: oldMap.get(name), newPrice: price });
+                    hasChanges = true;
+                }
+            });
+            oldMap.forEach((price, name) => {
+                if (!newMap.has(name)) {
+                    summary.removedItems.push({ name });
+                    hasChanges = true;
+                }
+            });
+            return hasChanges ? summary : null;
+        }
+
+        // 輔助函數：扁平化菜單
+        function flattenMenu(menuData) {
+            const itemsMap = new Map();
+            let itemsArray = [];
+            if (menuData.menuCategories) {
+                menuData.menuCategories.forEach(cat => { if (cat.items) itemsArray = itemsArray.concat(cat.items); });
+            } else if (menuData.menuItems) {
+                itemsArray = menuData.menuItems;
+            }
+            itemsArray.forEach(item => { itemsMap.set(item.name, item.price); });
+            return itemsMap;
+        }
+
+
+        // --- C. 監聽歷史紀錄 ---
         const historyQ = query(collection(db, 'restaurantHistory'), orderBy('lastUsed', 'desc'));
         onSnapshot(historyQ, (snapshot) => {
             historyListEl.innerHTML = '';
@@ -287,8 +355,10 @@ const firebaseConfig = {
                     const jsonToLoad = {
                         restaurantName: data.restaurantName,
                         restaurantPhone: data.restaurantPhone,
-                        menuItems: data.menuItems
                     };
+                    if (data.menuCategories) jsonToLoad.menuCategories = data.menuCategories;
+                    else if (data.menuItems) jsonToLoad.menuItems = data.menuItems;
+
                     adminJsonInput.value = JSON.stringify(jsonToLoad, null, 2);
                     adminJsonInput.scrollIntoView({ behavior: 'smooth' });
                 });
@@ -296,7 +366,7 @@ const firebaseConfig = {
             });
         });
 
-        // --- D. 訂單監聽與渲染 (含刪除按鈕) ---
+        // --- D. 訂單監聽與渲染 ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
@@ -377,7 +447,7 @@ const firebaseConfig = {
             catch (e) { alert('更新失敗：' + e.message); }
         }
 
-        // --- E. 訂單統整邏輯 (不變) ---
+        // --- E. 訂單統整邏輯 ---
         function calculateAggregation(orders) {
             const summaryMap = {};
             let totalItemsCount = 0;

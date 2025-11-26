@@ -3,106 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v5.1 時間版)</title>
+    <title>✏️ 今天吃什麼？(v7.5 誇張手撕版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- CSS v5.1 (維持不變) --- */
+        /* --- CSS v7.5 (誇張手撕風格) --- */
         :root {
             --bg-color: #FFFBE6; --line-color: #4A3F35;
             --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
             --disabled-gray: #e0e0e0; --disabled-text: #888;
+            --danger-red: #d9534f; --success-green: #28a745;
+            /* 加深陰影，讓浮貼感更強烈 */
+            --paper-shadow: rgba(0, 0, 0, 0.3);
         }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
-            background-size: 20px 20px; color: var(--line-color); margin: 0; padding: 20px; max-width: 500px; margin: auto;
-            padding-bottom: 80px;
+            background-size: 20px 20px; color: var(--line-color);
+            /* 增加頁面邊距，因為區塊現在歪得很厲害 */
+            margin: 0; padding: 40px 20px; max-width: 500px; margin: auto;
+            padding-bottom: 100px;
+            overflow-x: hidden;
         }
         h1, h2, h3 { font-weight: normal; text-align: center; margin: 10px 0; }
-        .hand-drawn-box {
-            background: white; border: 3px solid var(--line-color);
-            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-            padding: 20px; box-shadow: 4px 4px 0px var(--line-color); margin-bottom: 25px;
-            transition: all 0.3s;
-        }
-        header { transform: rotate(-1deg); text-align: center; margin-bottom: 25px;}
-        header h1 { display: inline-block; border-bottom: 3px dashed var(--line-color); padding-bottom: 5px; margin-bottom: 5px;}
-        .restaurant-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;}
-        /* v5.1 新增：時間資訊樣式 */
-        .menu-time-info { font-size: 0.85rem; color: #666; margin-bottom: 5px;}
-        .deadline-highlight { color: #d9534f; font-weight: bold; }
         
-        body.order-closed .hand-drawn-box.menu-section,
-        body.order-closed .hand-drawn-box.input-section {
-            opacity: 0.7; filter: grayscale(0.5); pointer-events: none;
-        }
-        body.order-closed .submit-btn {
-            background: var(--disabled-gray) !important; color: var(--disabled-text) !important;
-            border-color: #aaa !important; box-shadow: none !important; cursor: not-allowed !important;
+        /* =========================================
+           v7.5 核心：誇張多層手撕錯覺術 Mixin
+        ========================================= */
+        /* 1. 主體 (最上層，裝內容的) */
+        .torn-paper-stack {
+            position: relative;
+            background: white;
+            padding: 30px; /* 增加內距，防止內容因為形狀太歪而跑出去 */
+            outline: 3px dashed var(--line-color); /* 加粗虛線 */
+            outline-offset: -5px;
+            /* 極端不規則的形狀 */
+            border-radius: 250px 35px 200px 55px / 55px 200px 35px 250px;
+            z-index: 10;
+            /* 基礎變形：稍微旋轉 + 傾斜 */
+            transform: rotate(-2deg) skew(-2deg);
+            margin-bottom: 60px; /* 增加區塊間距 */
         }
 
-        /* 多選菜單樣式 */
-        .menu-list-vertical { display: flex; flex-direction: column; gap: 15px; }
-        .menu-item-checkbox {
-            border: 2px solid var(--line-color); border-radius: 15px; background: white;
-            overflow: hidden; transition: all 0.2s;
+        /* 2. 第一層亂撕白邊 (::before) - 往左上錯位 */
+        .torn-paper-stack::before {
+            content: ''; position: absolute; z-index: -1; background: white;
+            /* 錯位更大 */
+            top: -15px; left: -10px; right: -5px; bottom: -20px;
+            /* 完全不同的極端形狀 */
+            border-radius: 30px 220px 50px 240px / 240px 50px 220px 30px;
+            /* 反向旋轉和傾斜，製造混亂感 */
+            transform: rotate(4deg) skew(3deg);
+            border: 2px solid rgba(255,255,255,0.8); /* 增加一點邊緣層次 */
         }
-        .menu-item-header { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; }
-        .menu-item-checkbox.selected { background: var(--accent-yellow); box-shadow: 3px 3px 0px var(--line-color); }
-        .checkbox-square {
-            width: 20px; height: 20px; border: 2px solid var(--line-color); margin-right: 15px;
-            display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+
+        /* 3. 第二層亂撕白邊 + 陰影 (::after) - 往右下錯位 */
+        .torn-paper-stack::after {
+            content: ''; position: absolute; z-index: -2; background: white;
+            /* 錯位最大 */
+            top: -20px; left: -15px; right: -18px; bottom: -25px;
+            /* 另一種極端形狀 */
+            border-radius: 60% 40% 70% 30% / 30% 70% 40% 60%;
+            /* 不同的角度 */
+            transform: rotate(-5deg) skew(-3deg);
+            /* 更深、更遠的陰影，製造懸空感 */
+            box-shadow: 20px 20px 40px var(--paper-shadow);
         }
-        .menu-item-checkbox.selected .checkbox-square::after { content: '✓'; }
-        .food-info { flex-grow: 1; font-size: 1.1rem; }
+
+        /* 個別區塊的獨特姿態，避免看起來都一樣 */
+        .menu-section { 
+            transform: rotate(-3deg) skewX(-2deg) !important; 
+            margin-top: 40px;
+        }
+        .input-section { 
+            transform: rotate(2deg) skewY(2deg) !important; 
+             /* 輸入區塊維持藍色底 */
+            background: var(--accent-blue) !important;
+        }
+        /* 輸入區塊的偽元素也要跟著變色 */
+        .input-section::before, .input-section::after { background: var(--accent-blue) !important; }
+
+        .status-section { 
+            transform: rotate(-1deg) skew(-4deg) !important;
+            background: var(--accent-green) !important;
+        }
+        .status-section::before, .status-section::after { background: var(--accent-green) !important; }
+
         
-        /* 備註與數量輸入區 */
+        header { text-align: center; margin-bottom: 50px; transform: rotate(2deg) skew(-2deg);}
+        header h1 { 
+            display: inline-block; padding: 10px 20px; margin-bottom: 10px;
+            /* 標題也要手撕感 */
+            background: var(--accent-yellow);
+            border: 4px solid white; outline: 3px dashed var(--line-color);
+            border-radius: 15px 255px 15px 225px / 225px 15px 255px 15px;
+            box-shadow: 5px 5px 0 rgba(0,0,0,0.2);
+            transform: rotate(-3deg);
+        }
+        .restaurant-name { font-size: 1.4rem; font-weight: bold; margin-bottom: 5px; margin-top: 15px;}
+        
+        /* 結單狀態：變回死板 */
+        body.order-closed .torn-paper-stack {
+            opacity: 0.8; filter: grayscale(0.8); pointer-events: none;
+            outline: 5px solid #888 !important; border-radius: 0 !important; 
+            transform: none !important; box-shadow: none !important; margin: 20px 0;
+        }
+        body.order-closed .torn-paper-stack::before,
+        body.order-closed .torn-paper-stack::after { display: none !important; }
+
+
+        /* ----------------------------------
+           內部元素的樣式調整 (配合誇張風格)
+        ---------------------------------- */
+        .category-title {
+            text-align: left; font-size: 1.2rem; font-weight: bold; 
+            margin: 25px 0 15px 0; display: inline-block; padding: 10px 20px;
+            background: var(--accent-yellow); 
+            outline: 3px dashed var(--line-color); outline-offset: -3px;
+            border: 4px solid white;
+            border-radius: 255px 25px 225px 35px / 35px 225px 25px 255px;
+            box-shadow: 5px 5px 10px var(--paper-shadow); transform: rotate(-2deg) skew(-2deg);
+        }
+
+        .menu-list-vertical { display: flex; flex-direction: column; gap: 20px; padding: 10px;}
+        
+        /* 菜單項目紙條 */
+        .menu-item-checkbox {
+            background: white; overflow: visible; transition: all 0.3s; position: relative;
+            outline: 2px dashed var(--line-color); outline-offset: -2px;
+            border: 4px solid white;
+            border-radius: 15px 255px 15px 225px / 225px 15px 255px 15px;
+            box-shadow: 5px 5px 15px var(--paper-shadow);
+            transform: rotate(0.5deg); /* 每個項目都稍微歪一點 */
+        }
+
+        /* 圖示貼紙 */
+        .food-icon-wrapper {
+            width: 48px; height: 48px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; margin-right: 15px;
+            background: #fff; position: relative; z-index: 2;
+            outline: 3px dashed var(--line-color); outline-offset: -2px;
+            border: 3px solid white;
+            border-radius: 60% 40% 70% 30% / 30% 70% 40% 60%;
+            transform: rotate(-8deg) scale(1.1); flex-shrink: 0;
+            box-shadow: 3px 3px 8px var(--paper-shadow);
+        }
+
+        /* 選中狀態 */
+        .menu-item-checkbox.selected { 
+            background: var(--accent-yellow); 
+            outline: 4px solid var(--line-color);
+            transform: scale(1.03) rotate(-1.5deg) translate(-5px, -5px); /* 選中時浮起來並歪掉 */
+            z-index: 5;
+            box-shadow: 15px 15px 30px var(--paper-shadow);
+        }
+
+        .menu-item-header { display: flex; align-items: center; padding: 15px; cursor: pointer; }
+        .checkbox-square {
+            width: 22px; height: 22px; border: 3px solid var(--line-color); margin-right: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; background: white;
+            border-radius: 5px; transform: rotate(3deg);
+        }
+        .menu-item-checkbox.selected .checkbox-square { transform: rotate(-3deg) scale(1.1); }
+        .menu-item-checkbox.selected .checkbox-square::after { content: '✓'; }
+        .food-info { flex-grow: 1; font-size: 1.2rem; display: flex; align-items: center; flex-wrap: wrap;}
+        
         .item-details-container {
-            display: none; padding: 10px 15px; background: rgba(255,255,255,0.5);
-            border-top: 2px dashed var(--line-color);
+            display: none; padding: 20px; background: rgba(255,255,255,0.6);
+            border-top: 3px dashed var(--line-color);
         }
         .menu-item-checkbox.selected .item-details-container { display: block; }
-        .note-input {
-            width: 100%; padding: 8px; border: 2px solid var(--line-color); border-radius: 8px;
-            font-family: inherit; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px;
-        }
-        .quantity-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-weight: bold;}
-        .qty-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line-color); background: white; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;}
-        .qty-btn:active { background: var(--accent-yellow); }
-
-        /* 用戶輸入區 */
-        .user-input-section { padding: 15px; background: var(--accent-blue); border-radius: 20px; border: 3px dashed var(--line-color); }
-        input[type="text"] {
-            width: 100%; padding: 10px; border: 2px solid var(--line-color); border-radius: 10px;
-            font-family: inherit; font-size: 1rem; box-sizing: border-box; margin-bottom: 15px;
-        }
-        .avatar-selector { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;}
-        .avatar-option {
-            width: 40px; height: 40px; font-size: 1.5rem; border: 2px solid transparent;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
-            background: white; border-color: var(--line-color);
-        }
-        .avatar-option.selected { background: var(--accent-yellow); transform: scale(1.1); box-shadow: 2px 2px 0 var(--line-color); }
-
-        .submit-btn {
-            background: var(--accent-pink); border: 3px solid var(--line-color);
+        
+        /* 輸入框和按鈕 */
+        .note-input, input[type="text"] {
+            width: 100%; padding: 15px; font-family: inherit; font-size: 1.1rem; box-sizing: border-box; margin-bottom: 20px;
+            background: white; outline: 3px dashed var(--line-color); border: 4px solid white;
             border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-            padding: 12px; font-size: 1.3rem; font-family: inherit; cursor: pointer;
-            box-shadow: 3px 3px 0px var(--line-color); width: 100%; font-weight: bold;
-            transition: all 0.3s;
+            box-shadow: 5px 5px 10px var(--paper-shadow); transform: rotate(0.5deg);
         }
-        .submit-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--line-color); }
-        .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none;}
+        .note-input:focus, input[type="text"]:focus { outline: 3px solid var(--line-color); transform: scale(1.02); }
+
+        .qty-btn { 
+            width: 40px; height: 40px; border-radius: 50%; background: white; cursor: pointer; font-size: 1.4rem; display: flex; align-items: center; justify-content: center;
+            outline: 3px dashed var(--line-color); border: 3px solid white; box-shadow: 3px 3px 6px var(--paper-shadow);
+            transform: rotate(odd) rotate(5deg) even rotate(-5deg);
+        }
+        .qty-btn:active { background: var(--accent-yellow); transform: scale(0.9); box-shadow: none; border-color: var(--accent-yellow);}
+
+        .user-input-section { padding: 10px; }
+        
+        .avatar-selector { display: flex; gap: 15px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap;}
+        .avatar-option {
+            width: 55px; height: 55px; font-size: 2rem; display: flex; align-items: center; justify-content: center; cursor: pointer;
+            background: white; position: relative;
+            outline: 3px dashed var(--line-color); border: 4px solid white;
+            border-radius: 60% 40% 70% 30% / 30% 70% 40% 60%;
+            box-shadow: 5px 5px 10px var(--paper-shadow); transition: all 0.3s;
+            transform: rotate(var(--rot)); /* 用變數隨機旋轉 */
+        }
+        .avatar-option:nth-child(1) { --rot: 5deg; } .avatar-option:nth-child(2) { --rot: -3deg; }
+        .avatar-option:nth-child(3) { --rot: 8deg; } .avatar-option:nth-child(4) { --rot: -6deg; }
+        .avatar-option:nth-child(5) { --rot: 2deg; } .avatar-option:nth-child(6) { --rot: -9deg; }
+
+        .avatar-option.selected { 
+            background: var(--accent-yellow); outline: 4px solid var(--line-color); border-color: var(--accent-yellow);
+            box-shadow: 10px 10px 0 var(--line-color); transform: scale(1.2) rotate(0deg) translate(-5px, -5px) !important; z-index: 10;
+        }
+
+        /* 送出按鈕 */
+        .submit-btn-wrapper { position: relative; width: 100%; padding: 5px;}
+        .submit-btn {
+            position: relative; z-index: 10;
+            background: var(--accent-pink); font-family: inherit; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.6rem; padding: 18px;
+            outline: 4px dashed var(--line-color); border: none;
+            border-radius: 15px 255px 15px 225px / 255px 15px 225px 15px;
+            transition: all 0.2s; transform: rotate(-1deg);
+        }
+        .submit-btn::before {
+            content: ''; position: absolute; z-index: -1; background: white;
+            top: -8px; left: -8px; right: -8px; bottom: -8px;
+            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; transform: rotate(2deg);
+            box-shadow: 10px 10px 0 var(--line-color);
+        }
+        .submit-btn:active { transform: translate(5px, 5px) rotate(-1deg); }
+        .submit-btn:active::before { box-shadow: 3px 3px 0 var(--line-color); }
 
         /* 底部狀況列表 */
-        .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed var(--line-color); padding-bottom: 10px; margin-bottom: 10px;}
-        .status-list { list-style: none; padding: 0; max-height: 300px; overflow-y: auto;}
-        .status-item { padding: 10px 0; border-bottom: 2px dashed #ddd; font-size: 1rem; }
-        .status-user-row { display: flex; align-items: center; font-weight: bold; margin-bottom: 5px;}
-        .status-avatar { font-size: 1.2rem; margin-right: 8px; }
-        .status-items-detail { padding-left: 30px; font-size: 0.95rem; opacity: 0.9; }
-        .item-note { background: #eee; padding: 2px 5px; border-radius: 5px; margin-left: 5px; font-size: 0.8rem; color: #555;}
+        .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px dashed var(--line-color); padding-bottom: 15px; margin-bottom: 15px;}
+        .status-item { padding: 15px 10px; border-bottom: 2px dashed rgba(74, 63, 53, 0.3); font-size: 1.1rem; transform: rotate(0.5deg);}
+        .status-user-row { display: flex; align-items: center; font-weight: bold; margin-bottom: 8px;}
+        .status-avatar { font-size: 1.5rem; margin-right: 12px; transform: rotate(-5deg); display: inline-block;}
+        .item-note { background: white; padding: 3px 10px; border-radius: 20px; margin-left: 8px; font-size: 0.9rem; color: #555; border: 2px dashed var(--line-color); display: inline-block; transform: rotate(-3deg); box-shadow: 2px 2px 5px rgba(0,0,0,0.1);}
     </style>
 </head>
 <body id="main-body">
@@ -114,23 +246,23 @@
         <div id="restaurant-phone" style="font-size: 0.9rem; margin-top: 5px;"></div>
     </header>
 
-    <main id="menu-section" class="hand-drawn-box menu-section">
-        <h2>今日菜單 Menu (可選數量)</h2>
-        <div id="menu-list-container" class="menu-list-vertical">
+    <main id="menu-section" class="hand-drawn-box menu-section torn-paper-stack">
+        <h2>今日菜單 Menu</h2>
+        <div id="menu-list-container">
             <p style="text-align: center;">正在載入菜單...</p>
         </div>
-        <hr style="border: none; border-top: 2px dashed var(--line-color); margin: 25px 0;">
-        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 1.1rem;">
+        <hr style="border: none; border-top: 4px dashed var(--line-color); margin: 30px 0; opacity: 0.6; transform: rotate(1deg);">
+        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 1.3rem;">
             您的選擇總計： $<span id="personal-total">0</span>
         </div>
     </main>
 
-    <section id="input-section" class="hand-drawn-box input-section">
+    <section id="input-section" class="hand-drawn-box input-section torn-paper-stack">
         <div class="user-input-section">
             <h3 style="margin-top: 0;">輪到你點餐了：</h3>
             <input type="text" id="username-input" placeholder="請輸入你的名字 (例如：小陳)">
             
-            <p style="text-align: center; margin: 5px 0;">選擇一個代表你的頭像：</p>
+            <p style="text-align: center; margin: 20px 0 15px 0; font-weight: bold; font-size: 1.1rem;">選擇一個頭像貼紙：</p>
             <div class="avatar-selector" id="avatar-selector">
                 <div class="avatar-option" onclick="selectAvatar(this, '🐻')">🐻</div>
                 <div class="avatar-option" onclick="selectAvatar(this, '🐰')">🐰</div>
@@ -140,11 +272,13 @@
                 <div class="avatar-option" onclick="selectAvatar(this, '🐷')">🐷</div>
             </div>
 
-            <button id="submit-btn" class="submit-btn" disabled>✅ 送出訂單</button>
+            <div class="submit-btn-wrapper">
+                <button id="submit-btn" class="submit-btn" disabled>✅ 送出訂單</button>
+            </div>
         </div>
     </section>
 
-    <section class="hand-drawn-box" style="background: var(--accent-green);">
+    <section class="hand-drawn-box status-section torn-paper-stack">
         <div class="status-header">
             <h2>點餐狀況 (本場次)</h2>
             <span style="font-size: 0.9rem;">(<span id="total-people-count">0</span> 人已點)</span>
@@ -159,16 +293,17 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥🔥🔥 【重要】請貼上您的 firebaseConfig 🔥🔥🔥
-const firebaseConfig = {
-  apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
-  authDomain: "cute-lunch-order.firebaseapp.com",
-  projectId: "cute-lunch-order",
-  storageBucket: "cute-lunch-order.firebasestorage.app",
-  messagingSenderId: "62115069448",
-  appId: "1:62115069448:web:212231a6452f87a3d69bbd",
-  measurementId: "G-DWMWFSHQPX"
-};
+        // 🔥🔥🔥 已自動填入您的 firebaseConfig 🔥🔥🔥
+        const firebaseConfig = {
+          apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
+          authDomain: "cute-lunch-order.firebaseapp.com",
+          projectId: "cute-lunch-order",
+          storageBucket: "cute-lunch-order.firebasestorage.app",
+          messagingSenderId: "62115069448",
+          appId: "1:62115069448:web:212231a6452f87a3d69bbd",
+          measurementId: "G-DWMWFSHQPX"
+        };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -176,7 +311,7 @@ const firebaseConfig = {
         const mainBody = document.getElementById('main-body');
         const menuContainer = document.getElementById('menu-list-container');
         const restaurantNameDisplay = document.getElementById('restaurant-name-display');
-        const menuTimeInfoDisplay = document.getElementById('menu-time-info'); // v5.1 新增
+        const menuTimeInfoDisplay = document.getElementById('menu-time-info');
         const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
         const usernameInput = document.getElementById('username-input');
         const submitBtn = document.getElementById('submit-btn');
@@ -188,9 +323,10 @@ const firebaseConfig = {
         let currentSelectionsMap = new Map();
         let currentSessionId = null;
         let unsubscribeOrders = null;
-        let isManualClosed = false; // 手動開關狀態
-        let deadlineTimeString = null; // 截止時間字串 (例如 "11:30")
-        let checkTimeInterval = null; // 計時器
+        let isManualClosed = false;
+        let deadlineTimeString = null;
+        let checkTimeInterval = null;
+        let priceChangeMap = new Map(); 
 
         // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
@@ -199,7 +335,6 @@ const firebaseConfig = {
                 restaurantNameDisplay.textContent = data.restaurantName || '今日餐廳';
                 restaurantPhoneDisplay.textContent = data.restaurantPhone ? `📞 電話: ${data.restaurantPhone}` : '';
                 
-                // v5.1 新增：顯示時間資訊與讀取截止時間
                 let timeInfoHtml = '';
                 if (data.updatedAt) {
                     const updateTime = new Date(data.updatedAt.seconds * 1000).toLocaleString('zh-TW', {hour: '2-digit', minute:'2-digit'});
@@ -213,17 +348,14 @@ const firebaseConfig = {
                 }
                 menuTimeInfoDisplay.innerHTML = timeInfoHtml;
 
-                // 讀取手動開關狀態
                 isManualClosed = data.isOrderClosed === true;
-                
-                // 立即檢查一次狀態
                 checkFormLockState();
-
-                // 啟動計時器，每分鐘檢查一次時間
                 if (checkTimeInterval) clearInterval(checkTimeInterval);
-                checkTimeInterval = setInterval(checkFormLockState, 60000); // 60秒
+                checkTimeInterval = setInterval(checkFormLockState, 60000);
 
-                renderMenuList(data.menuItems || []);
+                processPriceChanges(data.comparisonSummary);
+                renderMenu(data);
+                
                 currentSessionId = data.sessionId;
                 if (currentSessionId) {
                     setupOrderListener(currentSessionId);
@@ -234,7 +366,16 @@ const firebaseConfig = {
             }
         });
 
-        // v5.1 新增：檢查表單鎖定狀態 (整合手動與時間)
+        function processPriceChanges(summary) {
+            priceChangeMap.clear();
+            if (summary && summary.changedItems) {
+                summary.changedItems.forEach(item => {
+                    const diff = item.newPrice - item.oldPrice;
+                    priceChangeMap.set(item.name, diff);
+                });
+            }
+        }
+
         function checkFormLockState() {
             let isTimeUp = false;
             if (deadlineTimeString) {
@@ -242,90 +383,145 @@ const firebaseConfig = {
                 const [deadlineHour, deadlineMinute] = deadlineTimeString.split(':').map(Number);
                 const deadlineDate = new Date();
                 deadlineDate.setHours(deadlineHour, deadlineMinute, 0, 0);
-                
-                if (now >= deadlineDate) {
-                    isTimeUp = true;
-                }
+                if (now >= deadlineDate) isTimeUp = true;
             }
-
-            // 只要「手動關閉」或「時間到」，就鎖定
             const shouldLock = isManualClosed || isTimeUp;
             updateFormState(shouldLock, isTimeUp);
         }
 
-        // v5.1 更新：更新表單外觀狀態
         function updateFormState(isLocked, isTimeUp) {
             if (isLocked) {
                 mainBody.classList.add('order-closed');
-                // 區分顯示鎖定原因
-                if (isTimeUp) {
-                    submitBtn.textContent = '⛔ 時間已到，停止點餐';
-                } else {
-                    submitBtn.textContent = '⛔ 已手動結單，停止點餐';
-                }
+                if (isTimeUp) submitBtn.textContent = '⛔ 時間已到，停止點餐';
+                else submitBtn.textContent = '⛔ 已手動結單，停止點餐';
                 submitBtn.disabled = true;
                 usernameInput.disabled = true;
             } else {
                 mainBody.classList.remove('order-closed');
                 submitBtn.textContent = '✅ 送出訂單';
                 usernameInput.disabled = false;
-                checkSubmitButtonState(); // 重新檢查按鈕狀態
+                checkSubmitButtonState();
             }
         }
 
-        function renderMenuList(items) {
+        // 根據菜名獲取對應的手繪 Emoji 圖示
+        function getIconForDish(dishName) {
+            const keywordMap = [
+                { keywords: ['雞', 'G', '腿', '排', '翅'], icon: '🍗' },
+                { keywords: ['牛', '牛排', '牛肉'], icon: '🥩' },
+                { keywords: ['豬', '排骨', '肉絲', '培根', '叉燒', '控肉', '魯肉', '香腸'], icon: '🐷' },
+                { keywords: ['魚', '鰻', '鯖', '鮭', '海鮮'], icon: '🐟' },
+                { keywords: ['蝦', '蝦仁', '炸蝦', '捲'], icon: '🍤' },
+                { keywords: ['麵', '米粉', '冬粉', '拉麵', '烏龍', '意麵'], icon: '🍜' },
+                { keywords: ['飯', '丼', '便當', '粥', '米糕'], icon: '🍚' },
+                { keywords: ['堡', '三明治', '吐司', '熱狗'], icon: '🥪' },
+                { keywords: ['餃', '鍋貼', '小籠包', '餛飩', '包'], icon: '🥟' },
+                { keywords: ['湯', '羹'], icon: '🥣' },
+                { keywords: ['菜', '素', '沙拉', '豆', '茄'], icon: '🥬' },
+                { keywords: ['炸', '薯條', '雞塊', '這'], icon: '🍟' },
+                { keywords: ['咖哩'], icon: '🍛' },
+                { keywords: ['蛋', '歐姆'], icon: '🍳' },
+                { keywords: ['茶', '咖啡', '飲', '奶', '果汁', '紅茶', '綠茶'], icon: '🥤' },
+                { keywords: ['甜', '蛋糕', '點心'], icon: '🍰' },
+            ];
+            for (const entry of keywordMap) {
+                if (entry.keywords.some(keyword => dishName.includes(keyword))) return entry.icon;
+            }
+            return '🍽️'; // 預設圖示
+        }
+
+        // renderMenu
+        function renderMenu(data) {
             menuContainer.innerHTML = '';
             currentSelectionsMap.clear();
             updatePersonalSummary();
 
-            items.forEach((item) => {
-                const el = document.createElement('div');
-                el.classList.add('menu-item-checkbox');
-                el.innerHTML = `
-                    <div class="menu-item-header">
-                        <div class="checkbox-square"></div>
-                        <div class="food-info">${item.name} <b>$${item.price}</b></div>
-                    </div>
-                    <div class="item-details-container">
-                        <input type="text" class="note-input" placeholder="備註 (例如: 加辣, 飯少)">
-                        <div class="quantity-controls">
-                            數量: <button class="qty-btn minus">-</button>
-                            <span class="qty-display">1</span>
-                            <button class="qty-btn plus">+</button>
-                        </div>
-                    </div>
-                `;
-                
-                const header = el.querySelector('.menu-item-header');
-                const noteInput = el.querySelector('.note-input');
-                const qtyDisplay = el.querySelector('.qty-display');
-                const minusBtn = el.querySelector('.minus');
-                const plusBtn = el.querySelector('.plus');
+            if (data.menuCategories && Array.isArray(data.menuCategories)) {
+                data.menuCategories.forEach(category => {
+                    const titleEl = document.createElement('div');
+                    titleEl.classList.add('category-title');
+                    titleEl.textContent = category.categoryName;
+                    menuContainer.appendChild(titleEl);
 
-                header.addEventListener('click', () => {
-                    if (mainBody.classList.contains('order-closed')) return;
-
-                    el.classList.toggle('selected');
-                    if (el.classList.contains('selected')) {
-                        currentSelectionsMap.set(item.name, { originalItem: item, noteInputDOM: noteInput, quantityDOM: qtyDisplay });
-                        qtyDisplay.textContent = '1';
-                    } else {
-                        currentSelectionsMap.delete(item.name);
-                        noteInput.value = ''; 
-                    }
-                    updatePersonalSummary();
-                    checkSubmitButtonState();
+                    const listEl = document.createElement('div');
+                    listEl.classList.add('menu-list-vertical');
+                    category.items.forEach(item => {
+                        listEl.appendChild(createMenuItemElement(item));
+                    });
+                    menuContainer.appendChild(listEl);
                 });
+            } else if (data.menuItems && Array.isArray(data.menuItems)) {
+                const listEl = document.createElement('div');
+                listEl.classList.add('menu-list-vertical');
+                data.menuItems.forEach(item => {
+                    listEl.appendChild(createMenuItemElement(item));
+                });
+                menuContainer.appendChild(listEl);
+            } else {
+                 menuContainer.innerHTML = '<p>菜單資料格式錯誤或為空。</p>';
+            }
+        }
 
-                minusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, -1); });
-                plusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, 1); });
-                menuContainer.appendChild(el);
+        // 建立菜單項目元素
+        function createMenuItemElement(item) {
+            const el = document.createElement('div');
+            el.classList.add('menu-item-checkbox');
+
+            let priceNoteHtml = '';
+            if (priceChangeMap.has(item.name)) {
+                const diff = priceChangeMap.get(item.name);
+                if (diff > 0) {
+                    priceNoteHtml = `<span class="price-note-up">(漲${diff}元)</span>`;
+                } else if (diff < 0) {
+                    priceNoteHtml = `<span class="price-note-down">(降${Math.abs(diff)}元)</span>`;
+                }
+            }
+
+            const dishIcon = getIconForDish(item.name);
+
+            el.innerHTML = `
+                <div class="menu-item-header">
+                    <div class="food-icon-wrapper">${dishIcon}</div>
+                    <div class="checkbox-square"></div>
+                    <div class="food-info">${item.name} <b>$${item.price}</b>${priceNoteHtml}</div>
+                </div>
+                <div class="item-details-container">
+                    <input type="text" class="note-input" placeholder="備註 (例如: 加辣, 飯少)">
+                    <div class="quantity-controls">
+                        數量: <button class="qty-btn minus">-</button>
+                        <span class="qty-display">1</span>
+                        <button class="qty-btn plus">+</button>
+                    </div>
+                </div>
+            `;
+            
+            const header = el.querySelector('.menu-item-header');
+            const noteInput = el.querySelector('.note-input');
+            const qtyDisplay = el.querySelector('.qty-display');
+            const minusBtn = el.querySelector('.minus');
+            const plusBtn = el.querySelector('.plus');
+
+            header.addEventListener('click', () => {
+                if (mainBody.classList.contains('order-closed')) return;
+                el.classList.toggle('selected');
+                if (el.classList.contains('selected')) {
+                    currentSelectionsMap.set(item.name, { originalItem: item, noteInputDOM: noteInput, quantityDOM: qtyDisplay });
+                    qtyDisplay.textContent = '1';
+                } else {
+                    currentSelectionsMap.delete(item.name);
+                    noteInput.value = ''; 
+                }
+                updatePersonalSummary();
+                checkSubmitButtonState();
             });
+
+            minusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, -1); });
+            plusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, 1); });
+            return el;
         }
 
         function changeQuantity(itemName, delta) {
             if (mainBody.classList.contains('order-closed')) return;
-            
             const selection = currentSelectionsMap.get(itemName);
             if (!selection) return;
             let currentQty = parseInt(selection.quantityDOM.textContent);
@@ -346,7 +542,6 @@ const firebaseConfig = {
         // --- B. 用戶輸入互動 ---
         window.selectAvatar = (element, char) => {
             if (mainBody.classList.contains('order-closed')) return;
-
             document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
             element.classList.add('selected');
             selectedAvatarChar = char;
@@ -355,10 +550,8 @@ const firebaseConfig = {
 
         function checkSubmitButtonState() {
             if (mainBody.classList.contains('order-closed')) {
-                submitBtn.disabled = true;
-                return;
+                submitBtn.disabled = true; return;
             }
-
             if (selectedAvatarChar && usernameInput.value.trim() !== '' && currentSelectionsMap.size > 0 && currentSessionId) {
                 submitBtn.disabled = false;
             } else {
@@ -369,7 +562,6 @@ const firebaseConfig = {
 
         // --- C. 送出訂單 ---
         submitBtn.addEventListener('click', async () => {
-            // v5.1 新增：雙重檢查是否結單
             if (submitBtn.disabled || mainBody.classList.contains('order-closed')) return;
             if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
             
@@ -409,7 +601,7 @@ const firebaseConfig = {
             }
         });
 
-        // --- D. 即時監聽點餐狀況 (不變) ---
+        // --- D. 即時監聽點餐狀況 (維持 v6) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
