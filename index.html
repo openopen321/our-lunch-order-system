@@ -3,32 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v4 數量版)</title>
+    <title>✏️ 今天吃什麼？(v5 結單版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- CSS 樣式 (v4) --- */
+        /* --- CSS v5 (維持 v4, 新增禁用狀態) --- */
         :root {
             --bg-color: #FFFBE6; --line-color: #4A3F35;
             --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
+            --disabled-gray: #e0e0e0; --disabled-text: #888;
         }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
             background-size: 20px 20px; color: var(--line-color); margin: 0; padding: 20px; max-width: 500px; margin: auto;
-            padding-bottom: 80px; /* 預留底部空間 */
+            padding-bottom: 80px;
         }
         h1, h2, h3 { font-weight: normal; text-align: center; margin: 10px 0; }
         .hand-drawn-box {
             background: white; border: 3px solid var(--line-color);
             border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
             padding: 20px; box-shadow: 4px 4px 0px var(--line-color); margin-bottom: 25px;
+            transition: all 0.3s;
         }
         header { transform: rotate(-1deg); text-align: center; margin-bottom: 25px;}
         header h1 { display: inline-block; border-bottom: 3px dashed var(--line-color); padding-bottom: 5px;}
         .restaurant-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;}
+        
+        /* v5 新增：結單時的禁用狀態樣式 */
+        body.order-closed .hand-drawn-box.menu-section,
+        body.order-closed .hand-drawn-box.input-section {
+            opacity: 0.7;
+            filter: grayscale(0.5);
+            pointer-events: none; /* 禁止所有點擊互動 */
+        }
+        body.order-closed .submit-btn {
+            background: var(--disabled-gray) !important;
+            color: var(--disabled-text) !important;
+            border-color: #aaa !important;
+            box-shadow: none !important;
+            cursor: not-allowed !important;
+        }
 
-        /* 多選菜單樣式 (含數量) */
+        /* 多選菜單樣式 */
         .menu-list-vertical { display: flex; flex-direction: column; gap: 15px; }
         .menu-item-checkbox {
             border: 2px solid var(--line-color); border-radius: 15px; background: white;
@@ -45,7 +62,7 @@
         .menu-item-checkbox.selected .checkbox-square::after { content: '✓'; }
         .food-info { flex-grow: 1; font-size: 1.1rem; }
         
-        /* 備註與數量輸入區 (預設隱藏) */
+        /* 備註與數量輸入區 */
         .item-details-container {
             display: none; padding: 10px 15px; background: rgba(255,255,255,0.5);
             border-top: 2px dashed var(--line-color);
@@ -78,6 +95,7 @@
             border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
             padding: 12px; font-size: 1.3rem; font-family: inherit; cursor: pointer;
             box-shadow: 3px 3px 0px var(--line-color); width: 100%; font-weight: bold;
+            transition: all 0.3s;
         }
         .submit-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--line-color); }
         .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none;}
@@ -94,7 +112,7 @@
         .item-note { background: #eee; padding: 2px 5px; border-radius: 5px; margin-left: 5px; font-size: 0.8rem; color: #555;}
     </style>
 </head>
-<body>
+<body id="main-body">
 
     <header>
         <h1>✏️ 今天吃什麼？</h1>
@@ -102,14 +120,18 @@
         <div id="restaurant-phone" style="font-size: 0.9rem; margin-top: 5px;"></div>
     </header>
 
-    <main class="hand-drawn-box">
+    <main id="menu-section" class="hand-drawn-box menu-section">
         <h2>今日菜單 Menu (可選數量)</h2>
         <div id="menu-list-container" class="menu-list-vertical">
             <p style="text-align: center;">正在載入菜單...</p>
         </div>
-
         <hr style="border: none; border-top: 2px dashed var(--line-color); margin: 25px 0;">
+        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 1.1rem;">
+            您的選擇總計： $<span id="personal-total">0</span>
+        </div>
+    </main>
 
+    <section id="input-section" class="hand-drawn-box input-section">
         <div class="user-input-section">
             <h3 style="margin-top: 0;">輪到你點餐了：</h3>
             <input type="text" id="username-input" placeholder="請輸入你的名字 (例如：小陳)">
@@ -124,13 +146,9 @@
                 <div class="avatar-option" onclick="selectAvatar(this, '🐷')">🐷</div>
             </div>
 
-            <div style="text-align: center; margin-bottom: 10px; font-weight: bold;">
-                總計： $<span id="personal-total">0</span>
-            </div>
-
             <button id="submit-btn" class="submit-btn" disabled>✅ 送出訂單</button>
         </div>
-    </main>
+    </section>
 
     <section class="hand-drawn-box" style="background: var(--accent-green);">
         <div class="status-header">
@@ -161,13 +179,8 @@ const firebaseConfig = {
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 變數與 DOM ---
-        let selectedAvatarChar = null;
-        // 存放目前使用者選中的餐點 Map: key=itemName, value={originalItem, noteInputDOM, quantityDOM}
-        let currentSelectionsMap = new Map();
-        let currentSessionId = null;
-        let unsubscribeOrders = null;
-
+        // DOM
+        const mainBody = document.getElementById('main-body');
         const menuContainer = document.getElementById('menu-list-container');
         const restaurantNameDisplay = document.getElementById('restaurant-name-display');
         const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
@@ -177,15 +190,24 @@ const firebaseConfig = {
         const liveStatusList = document.getElementById('live-status-list');
         const totalPeopleCountSpan = document.getElementById('total-people-count');
 
+        let selectedAvatarChar = null;
+        let currentSelectionsMap = new Map();
+        let currentSessionId = null;
+        let unsubscribeOrders = null;
+        let isOrderClosedGlobal = false; // v5 新增：全域結單狀態
 
-        // --- 1. 監聽並渲染今日菜單 ---
+        // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 restaurantNameDisplay.textContent = data.restaurantName || '今日餐廳';
                 restaurantPhoneDisplay.textContent = data.restaurantPhone ? `📞 電話: ${data.restaurantPhone}` : '';
-                renderMenuList(data.menuItems || []);
+                
+                // v5 新增：讀取並應用結單狀態
+                isOrderClosedGlobal = data.isOrderClosed === true;
+                updateFormState(isOrderClosedGlobal);
 
+                renderMenuList(data.menuItems || []);
                 currentSessionId = data.sessionId;
                 if (currentSessionId) {
                     setupOrderListener(currentSessionId);
@@ -195,6 +217,21 @@ const firebaseConfig = {
             }
         });
 
+        // v5 新增：更新表單鎖定狀態
+        function updateFormState(isClosed) {
+            if (isClosed) {
+                mainBody.classList.add('order-closed');
+                submitBtn.textContent = '⛔ 已結單，停止點餐';
+                submitBtn.disabled = true;
+                usernameInput.disabled = true;
+            } else {
+                mainBody.classList.remove('order-closed');
+                submitBtn.textContent = '✅ 送出訂單';
+                usernameInput.disabled = false;
+                checkSubmitButtonState(); // 重新檢查按鈕狀態
+            }
+        }
+
         function renderMenuList(items) {
             menuContainer.innerHTML = '';
             currentSelectionsMap.clear();
@@ -203,7 +240,6 @@ const firebaseConfig = {
             items.forEach((item) => {
                 const el = document.createElement('div');
                 el.classList.add('menu-item-checkbox');
-                // 新增數量控制介面
                 el.innerHTML = `
                     <div class="menu-item-header">
                         <div class="checkbox-square"></div>
@@ -212,8 +248,7 @@ const firebaseConfig = {
                     <div class="item-details-container">
                         <input type="text" class="note-input" placeholder="備註 (例如: 加辣, 飯少)">
                         <div class="quantity-controls">
-                            數量: 
-                            <button class="qty-btn minus">-</button>
+                            數量: <button class="qty-btn minus">-</button>
                             <span class="qty-display">1</span>
                             <button class="qty-btn plus">+</button>
                         </div>
@@ -226,12 +261,14 @@ const firebaseConfig = {
                 const minusBtn = el.querySelector('.minus');
                 const plusBtn = el.querySelector('.plus');
 
-                // 點擊 Header 切換選擇狀態
                 header.addEventListener('click', () => {
+                    // v5 新增：如果已結單，阻止點擊
+                    if (isOrderClosedGlobal) return;
+
                     el.classList.toggle('selected');
                     if (el.classList.contains('selected')) {
                         currentSelectionsMap.set(item.name, { originalItem: item, noteInputDOM: noteInput, quantityDOM: qtyDisplay });
-                        qtyDisplay.textContent = '1'; // 預設數量為 1
+                        qtyDisplay.textContent = '1';
                     } else {
                         currentSelectionsMap.delete(item.name);
                         noteInput.value = ''; 
@@ -240,21 +277,21 @@ const firebaseConfig = {
                     checkSubmitButtonState();
                 });
 
-                // 數量增減事件 (阻止冒泡以免觸發 header click)
                 minusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, -1); });
                 plusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, 1); });
-
                 menuContainer.appendChild(el);
             });
         }
 
-        // 處理數量變更
         function changeQuantity(itemName, delta) {
+            // v5 新增：如果已結單，阻止數量變更
+            if (isOrderClosedGlobal) return;
+            
             const selection = currentSelectionsMap.get(itemName);
             if (!selection) return;
             let currentQty = parseInt(selection.quantityDOM.textContent);
             let newQty = currentQty + delta;
-            if (newQty < 1) newQty = 1; // 最少為 1
+            if (newQty < 1) newQty = 1;
             selection.quantityDOM.textContent = newQty;
             updatePersonalSummary();
         }
@@ -262,14 +299,16 @@ const firebaseConfig = {
         function updatePersonalSummary() {
             let total = 0;
             currentSelectionsMap.forEach(sel => {
-                const qty = parseInt(sel.quantityDOM.textContent);
-                total += sel.originalItem.price * qty;
+                total += sel.originalItem.price * parseInt(sel.quantityDOM.textContent);
             });
             personalTotalDisplay.textContent = total;
         }
 
-        // --- 2. 用戶輸入互動 ---
+        // --- B. 用戶輸入互動 ---
         window.selectAvatar = (element, char) => {
+            // v5 新增：如果已結單，阻止頭像選擇
+            if (isOrderClosedGlobal) return;
+
             document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
             element.classList.add('selected');
             selectedAvatarChar = char;
@@ -277,6 +316,12 @@ const firebaseConfig = {
         }
 
         function checkSubmitButtonState() {
+            // v5 修改：如果已結單，強制禁用按鈕
+            if (isOrderClosedGlobal) {
+                submitBtn.disabled = true;
+                return;
+            }
+
             if (selectedAvatarChar && usernameInput.value.trim() !== '' && currentSelectionsMap.size > 0 && currentSessionId) {
                 submitBtn.disabled = false;
             } else {
@@ -285,9 +330,10 @@ const firebaseConfig = {
         }
         usernameInput.addEventListener('input', checkSubmitButtonState);
 
-        // --- 3. 送出訂單 (包含數量) ---
+        // --- C. 送出訂單 ---
         submitBtn.addEventListener('click', async () => {
-            if (submitBtn.disabled) return;
+            // v5 新增：雙重檢查是否結單
+            if (submitBtn.disabled || isOrderClosedGlobal) return;
             if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
             
             const userName = usernameInput.value.trim();
@@ -296,15 +342,13 @@ const firebaseConfig = {
 
             const itemsToOrder = [];
             let totalCost = 0;
-            
-            // 打包訂單資料
             currentSelectionsMap.forEach(sel => {
                 const qty = parseInt(sel.quantityDOM.textContent);
                 itemsToOrder.push({
                     name: sel.originalItem.name,
                     price: sel.originalItem.price,
                     note: sel.noteInputDOM.value.trim(),
-                    quantity: qty // <--- 新增數量欄位
+                    quantity: qty
                 });
                 totalCost += sel.originalItem.price * qty;
             });
@@ -328,32 +372,23 @@ const firebaseConfig = {
             }
         });
 
-        // --- 4. 即時監聽點餐狀況 (顯示數量) ---
+        // --- D. 即時監聽點餐狀況 (不變) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
-
             unsubscribeOrders = onSnapshot(q, (querySnapshot) => {
                 liveStatusList.innerHTML = '';
                 totalPeopleCountSpan.textContent = querySnapshot.size;
-
-                if (querySnapshot.empty) {
-                    liveStatusList.innerHTML = '<p style="text-align: center; opacity: 0.7;">目前還沒有人點餐...</p>';
-                    return;
-                }
+                if (querySnapshot.empty) { liveStatusList.innerHTML = '<p style="text-align: center; opacity: 0.7;">目前還沒有人點餐...</p>'; return; }
                 querySnapshot.forEach((doc) => {
                     const order = doc.data();
                     const li = document.createElement('li');
                     li.classList.add('status-item');
-                    
-                    // 顯示餐點詳情 (包含數量)
                     let itemsHtml = order.items.map(item => {
                         const noteHtml = item.note ? `<span class="item-note">${item.note}</span>` : '';
-                        // 如果數量大於 1 才顯示 "x N"
                         const qtyHtml = item.quantity > 1 ? ` <b>x${item.quantity}</b>` : '';
                         return `<div>- ${item.name}${qtyHtml} ${noteHtml}</div>`;
                     }).join('');
-
                     li.innerHTML = `
                         <div class="status-user-row">
                             <span class="status-avatar">${order.userAvatar}</span>
