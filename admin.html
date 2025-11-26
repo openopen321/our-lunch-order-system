@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 v5 (結單功能)</title>
+    <title>🔧 管理後台 v5.1 (樣式修正版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* CSS v5 (維持 v4.1) */
-        :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #ffcccc; }
+        /* --- CSS v5.1 (整合修正版) --- */
+        :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #ffcccc; --success-green: #c7edb6; }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color); color: var(--line-color);
@@ -20,6 +20,8 @@
             background: white; border: 3px solid var(--line-color); padding: 20px;
             box-shadow: 4px 4px 0px var(--line-color); border-radius: 10px; margin-bottom: 30px;
         }
+        
+        /* 表格與狀態樣式 */
         .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem;}
         .order-table th, .order-table td { border: 2px solid var(--line-color); padding: 8px; text-align: center; vertical-align: middle;}
         .order-table th { background: var(--accent-yellow); }
@@ -30,20 +32,23 @@
         .status-debt { color: red; font-weight: bold; background: #ffe6e6;}
         .status-change { color: blue; font-weight: bold; background: #e6f0ff;}
         .row-fully-paid { background-color: #e6ffe6; opacity: 0.8; }
+
+        /* 按鈕通用樣式 */
         .btn { background: var(--accent-yellow); border: 2px solid var(--line-color); padding: 8px 15px; cursor: pointer; font-weight: bold; box-shadow: 2px 2px 0 var(--line-color); border-radius: 5px;}
         .btn:active { transform: translate(1px, 1px); box-shadow: none; }
         .btn-new-session { background: var(--accent-pink); font-size: 1.1rem; padding: 10px 20px; width: 100%; }
         .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
         .btn-delete { background: var(--danger-red); color: #d9534f; font-size: 0.9rem; padding: 5px 10px; border-color: #d9534f;}
-        
-        /* v5 新增：結單按鈕樣式 */
-        .close-order-section { margin: 20px 0; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 10px; text-align: center;}
-        .btn-close-order { background: #ff4d4d; color: white; font-size: 1.2rem; padding: 10px 30px; border: 3px solid var(--line-color);}
-        .btn-close-order:disabled { background: #ccc; color: #666; cursor: not-allowed; box-shadow: none; transform: none;}
-        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
-        .status-open { background: #c7edb6; color: darkgreen; border: 2px solid darkgreen;}
-        .status-closed { background: #ffcccc; color: darkred; border: 2px solid darkred;}
 
+        /* 結單控制區樣式 */
+        .header-actions { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;}
+        .close-order-section { flex-grow: 1; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 10px; text-align: center;}
+        .btn-close-order { background: #ff4d4d; color: white; font-size: 1.2rem; padding: 10px 30px; border: 3px solid var(--line-color); width: 100%; max-width: 400px;}
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
+        .status-open { background: var(--success-green); color: darkgreen; border: 2px solid darkgreen;}
+        .status-closed { background: var(--danger-red); color: darkred; border: 2px solid darkred;}
+
+        /* 統整與歷史區樣式 */
         .summary-header-info { font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.2);}
         .summary-list { list-style: disc; padding-left: 40px; }
         .summary-list li { margin-bottom: 8px; font-size: 1.1rem; }
@@ -51,28 +56,32 @@
         .history-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto;}
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd;}
         .history-info { flex-grow: 1; }
+        
+        /* 發布區樣式 */
         textarea { width: 100%; height: 100px; border: 2px solid var(--line-color); padding: 5px; font-family: monospace; box-sizing: border-box;}
-        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;}
+        .time-input-container { margin: 15px 0; padding: 15px; background: var(--accent-blue); border-radius: 10px; border: 2px dashed var(--line-color); text-align: center; display: flex; align-items: center; justify-content: center;}
+        input[type="time"] { padding: 5px 10px; font-size: 1.2rem; border: 2px solid var(--line-color); border-radius: 5px; font-family: inherit; margin-left: 10px;}
     </style>
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 v5 (結單功能)</h1>
+        <h1>🔧 管理後台 v5.1 (樣式修正版)</h1>
         <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold;"></div>
         <div class="session-info">
             <span id="current-session-id">載入中...</span>
             <span id="status-badge" class="status-badge" style="display: none;"></span>
         </div>
+        <div id="deadline-display" style="font-size: 0.9rem; color: #d9534f; font-weight: bold; margin-top: 5px;"></div>
     </header>
 
     <div class="header-actions">
         <div class="close-order-section">
-             <p style="margin: 5px 0; font-weight: bold;">準備打電話了嗎？</p>
-             <button id="btn-close-order" class="btn btn-close-order">🔴 鎖定結單 (停止點餐)</button>
-             <p style="font-size: 0.8rem; margin: 5px 0 0 0; color: #666;">點擊後前台將無法再送出新訂單</p>
+             <p style="margin: 5px 0; font-weight: bold;">手動結單控制</p>
+             <button id="btn-close-order" class="btn btn-close-order" disabled>載入中...</button>
+             <p style="font-size: 0.8rem; margin: 5px 0 0 0; color: #666;">(可強制鎖定或重新開放前台點餐)</p>
         </div>
-        <div style="text-align: right;">
-            <a href="index.html" target="_blank" class="btn" style="text-decoration: none; background: var(--accent-blue);">➡️ 前往點餐頁面</a>
+        <div>
+            <a href="index.html" target="_blank" class="btn" style="text-decoration: none; background: var(--accent-blue); display: inline-block; margin-top: 20px;">➡️ 前往點餐頁面</a>
         </div>
     </div>
 
@@ -119,9 +128,14 @@
 
     <section class="admin-box">
         <h2>📤 開啟新團購 & 發布菜單</h2>
-        <p style="font-size: 0.9rem; color: #d9534f;">注意：發布新菜單會自動開啟新場次，並將狀態重置為「開放中」。</p>
+        <p style="font-size: 0.9rem; color: #d9534f;">注意：發布新菜單會自動開啟新場次，並將手動狀態重置為「開放中」。</p>
         <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName): {"restaurantName": "...", "restaurantPhone": "...", "menuItems": [...]}'></textarea>
-        <button id="publish-btn" class="btn btn-new-session" style="margin-top: 10px;">🚀 發布新菜單 (開啟新場次)</button>
+        
+        <div class="time-input-container">
+            <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
+            <input type="time" id="deadline-time-input" value="11:30"> </div>
+
+        <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
     </section>
 
     <script type="module">
@@ -145,8 +159,8 @@ const firebaseConfig = {
         // DOM
         const adminRestaurantName = document.getElementById('admin-restaurant-name');
         const currentSessionIdDisplay = document.getElementById('current-session-id');
-        const statusBadge = document.getElementById('status-badge'); // v5 新增
-        const btnCloseOrder = document.getElementById('btn-close-order'); // v5 新增
+        const statusBadge = document.getElementById('status-badge');
+        const btnCloseOrder = document.getElementById('btn-close-order');
         const summaryHeader = document.getElementById('summary-header');
         const aggregatedListEl = document.getElementById('aggregated-order-list');
         const orderTableBody = document.getElementById('order-table-body');
@@ -156,11 +170,13 @@ const firebaseConfig = {
         const adminJsonInput = document.getElementById('admin-json-input');
         const publishBtn = document.getElementById('publish-btn');
         const historyListEl = document.getElementById('history-list');
+        const deadlineTimeInput = document.getElementById('deadline-time-input');
+        const deadlineDisplay = document.getElementById('deadline-display');
 
         let currentSessionId = null;
         let unsubscribeOrders = null;
         let currentMenuData = null;
-        let isOrderClosed = false; // v5 新增：追蹤結單狀態
+        let isOrderClosed = false;
 
         // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
@@ -170,17 +186,25 @@ const firebaseConfig = {
                 currentSessionId = currentMenuData.sessionId || 'unknown_session';
                 currentSessionIdDisplay.textContent = `場次 ID: ${currentSessionId}`;
                 
-                // v5 新增：處理結單狀態顯示
                 isOrderClosed = currentMenuData.isOrderClosed === true;
                 statusBadge.style.display = 'inline-block';
+                btnCloseOrder.disabled = false;
+
+                // 顯示截止時間
+                if (currentMenuData.deadlineTime) {
+                    deadlineDisplay.textContent = `(今日截止時間: ${currentMenuData.deadlineTime})`;
+                } else {
+                    deadlineDisplay.textContent = '';
+                }
+
                 if (isOrderClosed) {
-                    statusBadge.textContent = '⛔ 已結單鎖定';
+                    statusBadge.textContent = '⛔ 已手動結單';
                     statusBadge.className = 'status-badge status-closed';
                     btnCloseOrder.textContent = '✅ 已結單 (點擊重新開放)';
-                    btnCloseOrder.style.background = '#ccc'; // 視覺上變灰，但仍可點擊以重新開放
+                    btnCloseOrder.style.background = '#ccc';
                     btnCloseOrder.style.color = '#333';
                 } else {
-                    statusBadge.textContent = '🟢 開放點餐中';
+                    statusBadge.textContent = '🟢 手動開放中 (時間到自動關閉)';
                     statusBadge.className = 'status-badge status-open';
                     btnCloseOrder.textContent = '🔴 鎖定結單 (停止點餐)';
                     btnCloseOrder.style.background = '#ff4d4d';
@@ -198,40 +222,35 @@ const firebaseConfig = {
                 summaryHeader.textContent = '等待發布菜單...';
                 statusBadge.style.display = 'none';
                 btnCloseOrder.disabled = true;
+                deadlineDisplay.textContent = '';
             }
         });
 
-        // --- v5 新增功能：結單按鈕點擊事件 ---
+        // --- 手動結單按鈕點擊事件 ---
         btnCloseOrder.addEventListener('click', async () => {
             if (!currentSessionId) return;
-            // 切換狀態：如果是關的就開，是開的就關
             const newStatus = !isOrderClosed;
-            const confirmMsg = newStatus ? "確定要「結單」嗎？前台將無法再點餐。" : "確定要「重新開放」點餐嗎？";
-            
+            const confirmMsg = newStatus ? "確定要「手動結單」嗎？前台將無法再點餐。" : "確定要「重新開放」點餐嗎？";
             if (confirm(confirmMsg)) {
-                try {
-                    // 只更新 isOrderClosed 欄位
-                    await updateDoc(doc(db, "dailyData", "menu"), {
-                        isOrderClosed: newStatus
-                    });
-                    // 介面會透過 onSnapshot 自動更新
-                } catch (e) {
-                    alert('操作失敗：' + e.message);
-                }
+                try { await updateDoc(doc(db, "dailyData", "menu"), { isOrderClosed: newStatus }); } 
+                catch (e) { alert('操作失敗：' + e.message); }
             }
         });
 
-        // --- B. 發布新菜單 (v5 更新：重置結單狀態) ---
+        // --- B. 發布新菜單 (含截止時間) ---
         publishBtn.addEventListener('click', async () => {
             const jsonString = adminJsonInput.value.trim();
+            const deadlineTime = deadlineTimeInput.value;
             if (!jsonString) { alert('請先貼上 JSON！'); return; }
+            
             const newSessionId = 'session_' + Date.now();
             try {
                 const menuData = JSON.parse(jsonString);
                 await setDoc(doc(db, "dailyData", "menu"), {
                     ...menuData,
                     sessionId: newSessionId,
-                    isOrderClosed: false, // <--- v5 關鍵：新場次預設為開放
+                    isOrderClosed: false,
+                    deadlineTime: deadlineTime,
                     updatedAt: serverTimestamp()
                 });
                 const restaurantName = menuData.restaurantName || '未知餐廳';
@@ -243,7 +262,7 @@ const firebaseConfig = {
                     orderCount: increment(1)
                 }, { merge: true });
 
-                alert(`✅ 新場次開啟成功！狀態已重置為開放。`);
+                alert(`✅ 新場次開啟成功！截止時間設定為 ${deadlineTime}。`);
                 adminJsonInput.value = '';
             } catch (e) { alert('❌ 發布失敗：' + e.message); }
         });
@@ -277,7 +296,7 @@ const firebaseConfig = {
             });
         });
 
-        // --- D. 訂單監聽與渲染 (不變) ---
+        // --- D. 訂單監聽與渲染 (含刪除按鈕) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));

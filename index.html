@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v5 結單版)</title>
+    <title>✏️ 今天吃什麼？(v5.1 時間版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- CSS v5 (維持 v4, 新增禁用狀態) --- */
+        /* --- CSS v5.1 (維持不變) --- */
         :root {
             --bg-color: #FFFBE6; --line-color: #4A3F35;
             --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
@@ -27,22 +27,19 @@
             transition: all 0.3s;
         }
         header { transform: rotate(-1deg); text-align: center; margin-bottom: 25px;}
-        header h1 { display: inline-block; border-bottom: 3px dashed var(--line-color); padding-bottom: 5px;}
+        header h1 { display: inline-block; border-bottom: 3px dashed var(--line-color); padding-bottom: 5px; margin-bottom: 5px;}
         .restaurant-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;}
+        /* v5.1 新增：時間資訊樣式 */
+        .menu-time-info { font-size: 0.85rem; color: #666; margin-bottom: 5px;}
+        .deadline-highlight { color: #d9534f; font-weight: bold; }
         
-        /* v5 新增：結單時的禁用狀態樣式 */
         body.order-closed .hand-drawn-box.menu-section,
         body.order-closed .hand-drawn-box.input-section {
-            opacity: 0.7;
-            filter: grayscale(0.5);
-            pointer-events: none; /* 禁止所有點擊互動 */
+            opacity: 0.7; filter: grayscale(0.5); pointer-events: none;
         }
         body.order-closed .submit-btn {
-            background: var(--disabled-gray) !important;
-            color: var(--disabled-text) !important;
-            border-color: #aaa !important;
-            box-shadow: none !important;
-            cursor: not-allowed !important;
+            background: var(--disabled-gray) !important; color: var(--disabled-text) !important;
+            border-color: #aaa !important; box-shadow: none !important; cursor: not-allowed !important;
         }
 
         /* 多選菜單樣式 */
@@ -51,9 +48,7 @@
             border: 2px solid var(--line-color); border-radius: 15px; background: white;
             overflow: hidden; transition: all 0.2s;
         }
-        .menu-item-header {
-            display: flex; align-items: center; padding: 10px 15px; cursor: pointer;
-        }
+        .menu-item-header { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; }
         .menu-item-checkbox.selected { background: var(--accent-yellow); box-shadow: 3px 3px 0px var(--line-color); }
         .checkbox-square {
             width: 20px; height: 20px; border: 2px solid var(--line-color); margin-right: 15px;
@@ -103,9 +98,7 @@
         /* 底部狀況列表 */
         .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed var(--line-color); padding-bottom: 10px; margin-bottom: 10px;}
         .status-list { list-style: none; padding: 0; max-height: 300px; overflow-y: auto;}
-        .status-item {
-            padding: 10px 0; border-bottom: 2px dashed #ddd; font-size: 1rem;
-        }
+        .status-item { padding: 10px 0; border-bottom: 2px dashed #ddd; font-size: 1rem; }
         .status-user-row { display: flex; align-items: center; font-weight: bold; margin-bottom: 5px;}
         .status-avatar { font-size: 1.2rem; margin-right: 8px; }
         .status-items-detail { padding-left: 30px; font-size: 0.95rem; opacity: 0.9; }
@@ -117,6 +110,7 @@
     <header>
         <h1>✏️ 今天吃什麼？</h1>
         <div id="restaurant-name-display" class="restaurant-name"></div>
+        <div id="menu-time-info" class="menu-time-info"></div>
         <div id="restaurant-phone" style="font-size: 0.9rem; margin-top: 5px;"></div>
     </header>
 
@@ -175,7 +169,6 @@ const firebaseConfig = {
   appId: "1:62115069448:web:212231a6452f87a3d69bbd",
   measurementId: "G-DWMWFSHQPX"
 };
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -183,6 +176,7 @@ const firebaseConfig = {
         const mainBody = document.getElementById('main-body');
         const menuContainer = document.getElementById('menu-list-container');
         const restaurantNameDisplay = document.getElementById('restaurant-name-display');
+        const menuTimeInfoDisplay = document.getElementById('menu-time-info'); // v5.1 新增
         const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
         const usernameInput = document.getElementById('username-input');
         const submitBtn = document.getElementById('submit-btn');
@@ -194,7 +188,9 @@ const firebaseConfig = {
         let currentSelectionsMap = new Map();
         let currentSessionId = null;
         let unsubscribeOrders = null;
-        let isOrderClosedGlobal = false; // v5 新增：全域結單狀態
+        let isManualClosed = false; // 手動開關狀態
+        let deadlineTimeString = null; // 截止時間字串 (例如 "11:30")
+        let checkTimeInterval = null; // 計時器
 
         // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
@@ -203,9 +199,29 @@ const firebaseConfig = {
                 restaurantNameDisplay.textContent = data.restaurantName || '今日餐廳';
                 restaurantPhoneDisplay.textContent = data.restaurantPhone ? `📞 電話: ${data.restaurantPhone}` : '';
                 
-                // v5 新增：讀取並應用結單狀態
-                isOrderClosedGlobal = data.isOrderClosed === true;
-                updateFormState(isOrderClosedGlobal);
+                // v5.1 新增：顯示時間資訊與讀取截止時間
+                let timeInfoHtml = '';
+                if (data.updatedAt) {
+                    const updateTime = new Date(data.updatedAt.seconds * 1000).toLocaleString('zh-TW', {hour: '2-digit', minute:'2-digit'});
+                    timeInfoHtml += `菜單更新於: ${updateTime} `;
+                }
+                if (data.deadlineTime) {
+                    deadlineTimeString = data.deadlineTime;
+                    timeInfoHtml += `| <span class="deadline-highlight">今日截止: ${deadlineTimeString}</span>`;
+                } else {
+                    deadlineTimeString = null;
+                }
+                menuTimeInfoDisplay.innerHTML = timeInfoHtml;
+
+                // 讀取手動開關狀態
+                isManualClosed = data.isOrderClosed === true;
+                
+                // 立即檢查一次狀態
+                checkFormLockState();
+
+                // 啟動計時器，每分鐘檢查一次時間
+                if (checkTimeInterval) clearInterval(checkTimeInterval);
+                checkTimeInterval = setInterval(checkFormLockState, 60000); // 60秒
 
                 renderMenuList(data.menuItems || []);
                 currentSessionId = data.sessionId;
@@ -214,14 +230,39 @@ const firebaseConfig = {
                 }
             } else {
                 menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
+                if (checkTimeInterval) clearInterval(checkTimeInterval);
             }
         });
 
-        // v5 新增：更新表單鎖定狀態
-        function updateFormState(isClosed) {
-            if (isClosed) {
+        // v5.1 新增：檢查表單鎖定狀態 (整合手動與時間)
+        function checkFormLockState() {
+            let isTimeUp = false;
+            if (deadlineTimeString) {
+                const now = new Date();
+                const [deadlineHour, deadlineMinute] = deadlineTimeString.split(':').map(Number);
+                const deadlineDate = new Date();
+                deadlineDate.setHours(deadlineHour, deadlineMinute, 0, 0);
+                
+                if (now >= deadlineDate) {
+                    isTimeUp = true;
+                }
+            }
+
+            // 只要「手動關閉」或「時間到」，就鎖定
+            const shouldLock = isManualClosed || isTimeUp;
+            updateFormState(shouldLock, isTimeUp);
+        }
+
+        // v5.1 更新：更新表單外觀狀態
+        function updateFormState(isLocked, isTimeUp) {
+            if (isLocked) {
                 mainBody.classList.add('order-closed');
-                submitBtn.textContent = '⛔ 已結單，停止點餐';
+                // 區分顯示鎖定原因
+                if (isTimeUp) {
+                    submitBtn.textContent = '⛔ 時間已到，停止點餐';
+                } else {
+                    submitBtn.textContent = '⛔ 已手動結單，停止點餐';
+                }
                 submitBtn.disabled = true;
                 usernameInput.disabled = true;
             } else {
@@ -262,8 +303,7 @@ const firebaseConfig = {
                 const plusBtn = el.querySelector('.plus');
 
                 header.addEventListener('click', () => {
-                    // v5 新增：如果已結單，阻止點擊
-                    if (isOrderClosedGlobal) return;
+                    if (mainBody.classList.contains('order-closed')) return;
 
                     el.classList.toggle('selected');
                     if (el.classList.contains('selected')) {
@@ -284,8 +324,7 @@ const firebaseConfig = {
         }
 
         function changeQuantity(itemName, delta) {
-            // v5 新增：如果已結單，阻止數量變更
-            if (isOrderClosedGlobal) return;
+            if (mainBody.classList.contains('order-closed')) return;
             
             const selection = currentSelectionsMap.get(itemName);
             if (!selection) return;
@@ -306,8 +345,7 @@ const firebaseConfig = {
 
         // --- B. 用戶輸入互動 ---
         window.selectAvatar = (element, char) => {
-            // v5 新增：如果已結單，阻止頭像選擇
-            if (isOrderClosedGlobal) return;
+            if (mainBody.classList.contains('order-closed')) return;
 
             document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
             element.classList.add('selected');
@@ -316,8 +354,7 @@ const firebaseConfig = {
         }
 
         function checkSubmitButtonState() {
-            // v5 修改：如果已結單，強制禁用按鈕
-            if (isOrderClosedGlobal) {
+            if (mainBody.classList.contains('order-closed')) {
                 submitBtn.disabled = true;
                 return;
             }
@@ -332,8 +369,8 @@ const firebaseConfig = {
 
         // --- C. 送出訂單 ---
         submitBtn.addEventListener('click', async () => {
-            // v5 新增：雙重檢查是否結單
-            if (submitBtn.disabled || isOrderClosedGlobal) return;
+            // v5.1 新增：雙重檢查是否結單
+            if (submitBtn.disabled || mainBody.classList.contains('order-closed')) return;
             if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
             
             const userName = usernameInput.value.trim();
