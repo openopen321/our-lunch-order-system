@@ -1,13 +1,12 @@
-// admin.js - 後台主邏輯 (v10.0)
+// admin.js - 後台主邏輯 (v13.0 儀表板升級版)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-// 引入獨立的設定檔
 import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// DOM
+// --- DOM 元素 ---
 const adminRestaurantName = document.getElementById('admin-restaurant-name');
 const currentSessionIdDisplay = document.getElementById('current-session-id');
 const statusBadge = document.getElementById('status-badge');
@@ -24,11 +23,32 @@ const historyListEl = document.getElementById('history-list');
 const deadlineTimeInput = document.getElementById('deadline-time-input');
 const deadlineDisplay = document.getElementById('deadline-display');
 const adminMapUrlInput = document.getElementById('admin-map-url');
+// v13.0 新增 DOM
+const statOrderCount = document.getElementById('stat-order-count');
+const statTotalSales = document.getElementById('stat-total-sales');
+const statTotalDebt = document.getElementById('stat-total-debt');
+const topItemsListEl = document.getElementById('top-items-list');
+const toastContainer = document.getElementById('toast-container'); // v13.0
 
 let currentSessionId = null;
 let unsubscribeOrders = null;
 let currentMenuData = null;
 let isOrderClosed = false;
+
+// --- v13.0 新增：Toast 提示訊息函數 (與前台共用邏輯) ---
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.classList.add('toast', type);
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+    toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-message">${message}</span>`;
+    toastContainer.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('hide');
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 3000);
+}
 
 // --- A. 監聽菜單資訊與狀態 ---
 onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
@@ -56,7 +76,7 @@ onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
             btnCloseOrder.style.background = '#ccc';
             btnCloseOrder.style.color = '#333';
         } else {
-            statusBadge.textContent = '🟢 手動開放中 (時間到自動關閉)';
+            statusBadge.textContent = '🟢 手動開放中';
             statusBadge.className = 'status-badge status-open';
             btnCloseOrder.textContent = '🔴 鎖定結單 (停止點餐)';
             btnCloseOrder.style.background = '#ff4d4d';
@@ -83,6 +103,9 @@ onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
         btnCloseOrder.disabled = true;
         deadlineDisplay.textContent = '';
         adminMapUrlInput.value = '';
+        // v13.0: 清空儀表板數據
+        updateDashboardStats(0, 0, 0);
+        topItemsListEl.innerHTML = '<p style="text-align: center; color: #888;">尚無資料</p>';
     }
 });
 
@@ -92,8 +115,11 @@ btnCloseOrder.addEventListener('click', async () => {
     const newStatus = !isOrderClosed;
     const confirmMsg = newStatus ? "確定要「手動結單」嗎？前台將無法再點餐。" : "確定要「重新開放」點餐嗎？";
     if (confirm(confirmMsg)) {
-        try { await updateDoc(doc(db, "dailyData", "menu"), { isOrderClosed: newStatus }); } 
-        catch (e) { alert('操作失敗：' + e.message); }
+        try { 
+            await updateDoc(doc(db, "dailyData", "menu"), { isOrderClosed: newStatus });
+            showToast(newStatus ? '已手動結單' : '已重新開放點餐', 'success');
+        } 
+        catch (e) { showToast('操作失敗：' + e.message, 'error'); }
     }
 });
 
@@ -103,8 +129,8 @@ publishBtn.addEventListener('click', async () => {
     const deadlineTimeStr = deadlineTimeInput.value;
     const mapUrl = adminMapUrlInput.value.trim();
 
-    if (!jsonString) { alert('請先貼上 JSON！'); return; }
-    if (!deadlineTimeStr) { alert('請設定截止時間！'); return; }
+    if (!jsonString) { showToast('請先貼上 JSON！', 'error'); return; }
+    if (!deadlineTimeStr) { showToast('請設定截止時間！', 'error'); return; }
 
     publishBtn.textContent = '正在處理比對與發布...';
     publishBtn.disabled = true;
@@ -112,7 +138,6 @@ publishBtn.addEventListener('click', async () => {
     const newSessionId = 'session_' + Date.now();
     try {
         const newMenuData = JSON.parse(jsonString);
-
         const now = new Date();
         const [hours, minutes] = deadlineTimeStr.split(':').map(Number);
         const deadlineDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
@@ -149,10 +174,10 @@ publishBtn.addEventListener('click', async () => {
 
         await setDoc(doc(db, 'restaurantHistory', dataToSave.restaurantName), historyData, { merge: true });
 
-        alert(`✅ 新場次開啟成功！截止時間設定為 ${deadlineDate.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}。`);
+        showToast(`✅ 新場次開啟成功！截止時間：${deadlineDate.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`, 'success');
         adminJsonInput.value = '';
     } catch (e) { 
-        alert('❌ 發布失敗：' + e.message); 
+        showToast('❌ 發布失敗：' + e.message, 'error');
     } finally {
         publishBtn.textContent = '🚀 發布新菜單 (開啟新場次)';
         publishBtn.disabled = false;
@@ -229,12 +254,13 @@ onSnapshot(historyQ, (snapshot) => {
             adminMapUrlInput.value = data.restaurantMapUrl || '';
             
             adminJsonInput.scrollIntoView({ behavior: 'smooth' });
+            showToast('已載入歷史菜單資料，請確認後發布。', 'info');
         });
         historyListEl.appendChild(li);
     });
 });
 
-// --- D. 訂單監聽與渲染 ---
+// --- D. 訂單監聽與渲染 (v13.0 更新：整合儀表板數據計算) ---
 function setupOrderListener(sessionId) {
     if (unsubscribeOrders) unsubscribeOrders();
     const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
@@ -246,14 +272,19 @@ function setupOrderListener(sessionId) {
 function renderOrders(querySnapshot) {
     orderTableBody.innerHTML = '';
     let currentOrdersData = [];
-    let stats = { totalDue: 0, totalPaid: 0 };
+    let stats = { totalDue: 0, totalPaid: 0, orderCount: 0 }; // v13.0 新增 orderCount
 
     if (querySnapshot.empty) {
         orderTableBody.innerHTML = '<tr><td colspan="6">當前場次尚無訂單</td></tr>';
         aggregatedListEl.innerHTML = '<li>尚未有訂單</li>';
+        // v13.0: 清空儀表板和排行榜
+        updateDashboardStats(0, 0, 0);
+        renderTopItemsChart({});
         updateFooterStats(0, 0);
         return;
     }
+
+    stats.orderCount = querySnapshot.size; // v13.0: 記錄訂單數
 
     querySnapshot.forEach((docSnap) => {
         const order = docSnap.data();
@@ -290,8 +321,22 @@ function renderOrders(querySnapshot) {
         `;
         orderTableBody.appendChild(tr);
     });
+
+    // v13.0: 更新儀表板數據
+    const totalDebt = stats.totalDue - stats.totalPaid;
+    updateDashboardStats(stats.orderCount, stats.totalDue, totalDebt);
     updateFooterStats(stats.totalDue, stats.totalPaid);
-    calculateAggregation(currentOrdersData);
+    
+    // v13.0: 計算並渲染統整清單與排行榜
+    const aggregationResult = calculateAggregation(currentOrdersData);
+    renderTopItemsChart(aggregationResult.summaryMap); // 渲染排行榜
+}
+
+// v13.0 新增：更新儀表板戰情卡
+function updateDashboardStats(count, sales, debt) {
+    statOrderCount.textContent = count;
+    statTotalSales.textContent = sales;
+    statTotalDebt.textContent = debt > 0 ? debt : 0;
 }
 
 function updateFooterStats(due, paid) {
@@ -301,22 +346,27 @@ function updateFooterStats(due, paid) {
     grandTotalDebtEl.textContent = debt > 0 ? debt : 0;
 }
 
-// 將 deleteOrder 和 updatePaidAmount 掛載到 window 物件，因為 HTML onclick 會用到
 window.deleteOrder = async (orderId, userName) => {
     if (confirm(`確定要刪除「${userName}」的訂單嗎？此動作無法復原。`)) {
-        try { await deleteDoc(doc(db, "todayOrders", orderId)); } 
-        catch (e) { alert('刪除失敗：' + e.message); }
+        try { 
+            await deleteDoc(doc(db, "todayOrders", orderId)); 
+            showToast(`已刪除 ${userName} 的訂單`, 'success');
+        } 
+        catch (e) { showToast('刪除失敗：' + e.message, 'error'); }
     }
 }
 
 window.updatePaidAmount = async (orderId, newValue) => {
     const amount = Number(newValue);
-    if (isNaN(amount)) { alert('請輸入有效的金額'); return; }
-    try { await updateDoc(doc(db, "todayOrders", orderId), { paidAmount: amount }); } 
-    catch (e) { alert('更新失敗：' + e.message); }
+    if (isNaN(amount)) { showToast('請輸入有效的金額', 'error'); return; }
+    try { 
+        await updateDoc(doc(db, "todayOrders", orderId), { paidAmount: amount }); 
+        // showToast('已更新付款金額', 'success'); // 可以選擇是否要提示，頻繁操作可能太吵
+    } 
+    catch (e) { showToast('更新失敗：' + e.message, 'error'); }
 }
 
-// --- E. 訂單統整邏輯 ---
+// --- E. 訂單統整邏輯 (v13.0 修改：回傳 summaryMap 供排行榜使用) ---
 function calculateAggregation(orders) {
     const summaryMap = {};
     let totalItemsCount = 0;
@@ -329,17 +379,59 @@ function calculateAggregation(orders) {
             if (item.note) summaryMap[item.name].notes.push(`${qty}份:${item.note}`);
         });
     });
-    aggregatedListEl.innerHTML = '';
-    if (Object.keys(summaryMap).length === 0) { aggregatedListEl.innerHTML = '<li>當前場次尚無訂單</li>'; return; }
     
-    const totalLi = document.createElement('li');
-    totalLi.innerHTML = `<strong>📊 總共訂購：${totalItemsCount} 份餐點</strong><hr style="margin: 5px 0; border-top: 1px dashed #ccc;">`;
-    aggregatedListEl.appendChild(totalLi);
-
-    for (const [foodName, data] of Object.entries(summaryMap)) {
-        const li = document.createElement('li');
-        let noteDisplay = data.notes.length > 0 ? `<span class="summary-notes">備註: ${data.notes.join('; ')}</span>` : '';
-        li.innerHTML = `<b>${foodName}</b> x ${data.count} 份 ${noteDisplay}`;
-        aggregatedListEl.appendChild(li);
+    // 渲染統整清單 (打電話用)
+    aggregatedListEl.innerHTML = '';
+    if (Object.keys(summaryMap).length === 0) { 
+        aggregatedListEl.innerHTML = '<li>當前場次尚無訂單</li>'; 
+    } else {
+        const totalLi = document.createElement('li');
+        totalLi.innerHTML = `<strong>📊 總共訂購：${totalItemsCount} 份餐點</strong><hr style="margin: 5px 0; border-top: 1px dashed #ccc;">`;
+        aggregatedListEl.appendChild(totalLi);
+        for (const [foodName, data] of Object.entries(summaryMap)) {
+            const li = document.createElement('li');
+            let noteDisplay = data.notes.length > 0 ? `<span class="summary-notes">備註: ${data.notes.join('; ')}</span>` : '';
+            li.innerHTML = `<b>${foodName}</b> x ${data.count} 份 ${noteDisplay}`;
+            aggregatedListEl.appendChild(li);
+        }
     }
+    return { summaryMap, totalItemsCount };
+}
+
+// v13.0 新增：渲染熱門餐點排行榜 (CSS 長條圖)
+function renderTopItemsChart(summaryMap) {
+    topItemsListEl.innerHTML = '';
+    const itemsArray = Object.entries(summaryMap).map(([name, data]) => ({ name, count: data.count }));
+    
+    if (itemsArray.length === 0) {
+        topItemsListEl.innerHTML = '<p style="text-align: center; color: #888;">尚無資料</p>';
+        return;
+    }
+
+    // 排序並取前 5 名
+    itemsArray.sort((a, b) => b.count - a.count);
+    const top5 = itemsArray.slice(0, 5);
+    const maxCount = top5[0].count; // 用第一名的數量作為 100% 基準
+
+    top5.forEach((item, index) => {
+        const percentage = (item.count / maxCount) * 100;
+        const li = document.createElement('li');
+        li.classList.add('top-item');
+        
+        let rankClass = '';
+        if (index === 0) rankClass = 'rank-1';
+        else if (index === 1) rankClass = 'rank-2';
+        else if (index === 2) rankClass = 'rank-3';
+
+        li.innerHTML = `
+            <div class="top-item-info">
+                <span>#${index + 1} ${item.name}</span>
+                <span>${item.count} 份</span>
+            </div>
+            <div class="bar-container">
+                <div class="bar-fill ${rankClass}" style="width: ${percentage}%;"></div>
+            </div>
+        `;
+        topItemsListEl.appendChild(li);
+    });
 }

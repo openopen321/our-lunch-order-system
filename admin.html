@@ -3,14 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 v10.0 (模組化版)</title>
+    <title>🔧 管理後台 v13.0 (儀表板升級版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
         /* 後台專用樣式 (非共用部分) */
-        body { max-width: 950px; }
+        body { max-width: 1000px; } /* 稍微加寬以容納新佈局 */
+        
+        /* 標題與狀態 */
         #admin-restaurant-name { font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg); }
         .session-info { font-size: 0.9rem; color: #666; margin-top: 5px;}
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
+        .status-open { background: var(--success-green); color: darkgreen; border: 2px solid darkgreen;}
+        .status-closed { background: var(--danger-red); color: darkred; border: 2px solid darkred;}
+
+        /* v13.0 新增：儀表板數據圖卡 */
+        .dashboard-stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 15px;
+            border: 3px solid var(--line-color); box-shadow: 5px 5px 0 var(--line-color);
+            text-align: center; transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card.blue { background: var(--accent-blue); }
+        .stat-card.green { background: var(--accent-green); }
+        .stat-card.pink { background: var(--accent-pink); }
+        .stat-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: #555; }
+        .stat-value { font-size: 2rem; font-weight: bold; }
+        .stat-sub { font-size: 0.9rem; color: #666; margin-top: 5px;}
+        .debt-highlight { color: var(--danger-red); }
+
+        /* v13.0 新增：儀表板雙欄佈局 */
+        .dashboard-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 768px) { .dashboard-row { grid-template-columns: 1fr; } }
+
+        /* v13.0 新增：熱門餐點排行榜 (CSS 手繪長條圖) */
+        .top-items-list { list-style: none; padding: 0; }
+        .top-item { margin-bottom: 15px; }
+        .top-item-info { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; }
+        .bar-container {
+            height: 20px; background: #eee; border-radius: 10px;
+            border: 2px solid var(--line-color); overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%; background: var(--accent-yellow); border-radius: 8px;
+            border-right: 2px solid var(--line-color);
+            transition: width 1s cubic-bezier(0.25, 0.8, 0.25, 1); width: 0%; /* 初始寬度為 0，由 JS 動態設定 */
+        }
+        .bar-fill.rank-1 { background: var(--accent-pink); }
+        .bar-fill.rank-2 { background: var(--accent-blue); }
+        .bar-fill.rank-3 { background: var(--accent-green); }
+
+        /* 結單控制區 */
+        .header-actions { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;}
+        .close-order-section { flex-grow: 1; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 15px; text-align: center; transform: rotate(1deg);}
+        .btn-close-order { background: #ff4d4d; color: white; font-size: 1.2rem; padding: 10px 30px; border: 3px solid var(--line-color); width: 100%; max-width: 400px; border-radius: 10px;}
+        
+        /* 按鈕與表格通用 */
+        .btn { background: var(--accent-yellow); border: 2px solid var(--line-color); padding: 8px 15px; cursor: pointer; font-weight: bold; box-shadow: 2px 2px 0 var(--line-color); border-radius: 5px; font-family: inherit;}
+        .btn:active { transform: translate(1px, 1px); box-shadow: none; }
+        .btn-new-session { background: var(--accent-pink); font-size: 1.1rem; padding: 10px 20px; width: 100%; border-radius: 10px;}
+        .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
+        .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
+        
         .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem;}
         .order-table th, .order-table td { border: 2px solid var(--line-color); padding: 8px; text-align: center; vertical-align: middle; background: white;}
         .order-table th { background: var(--accent-yellow); }
@@ -21,17 +82,8 @@
         .status-debt { color: red; font-weight: bold; background: #ffe6e6;}
         .status-change { color: blue; font-weight: bold; background: #e6f0ff;}
         .row-fully-paid td { background-color: #e6ffe6 !important; opacity: 0.8; }
-        .btn { background: var(--accent-yellow); border: 2px solid var(--line-color); padding: 8px 15px; cursor: pointer; font-weight: bold; box-shadow: 2px 2px 0 var(--line-color); border-radius: 5px; font-family: inherit;}
-        .btn:active { transform: translate(1px, 1px); box-shadow: none; }
-        .btn-new-session { background: var(--accent-pink); font-size: 1.1rem; padding: 10px 20px; width: 100%; border-radius: 10px;}
-        .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
-        .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
-        .header-actions { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;}
-        .close-order-section { flex-grow: 1; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 15px; text-align: center; transform: rotate(1deg);}
-        .btn-close-order { background: #ff4d4d; color: white; font-size: 1.2rem; padding: 10px 30px; border: 3px solid var(--line-color); width: 100%; max-width: 400px; border-radius: 10px;}
-        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
-        .status-open { background: var(--success-green); color: darkgreen; border: 2px solid darkgreen;}
-        .status-closed { background: var(--danger-red); color: darkred; border: 2px solid darkred;}
+
+        /* 統整與歷史區樣式 */
         .summary-header-info { font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.2);}
         .summary-list { list-style: disc; padding-left: 40px; }
         .summary-list li { margin-bottom: 8px; font-size: 1.1rem; }
@@ -51,8 +103,10 @@
     </style>
 </head>
 <body>
+    <div id="toast-container" class="toast-container"></div>
+
     <header>
-        <h1>🔧 管理後台 v10.0 (模組化版)</h1>
+        <h1>🔧 管理後台 v13.0 (儀表板升級版)</h1>
         <div id="admin-restaurant-name"></div>
         <div class="session-info">
             <span id="current-session-id">載入中...</span>
@@ -72,16 +126,43 @@
         </div>
     </div>
 
-    <section class="admin-box" style="background: var(--accent-pink); transform: rotate(0.5deg);">
-        <h2>☎️ 打電話用：訂單統整區 (當前場次)</h2>
-        <div id="summary-header" class="summary-header-info">讀取中...</div>
-        <ul id="aggregated-order-list" class="summary-list">
-            <li>計算中...</li>
-        </ul>
+    <section class="dashboard-stats">
+        <div class="stat-card blue" style="transform: rotate(-1deg);">
+            <div class="stat-title">📝 今日訂單數</div>
+            <div class="stat-value" id="stat-order-count">0</div>
+            <div class="stat-sub">筆訂單</div>
+        </div>
+        <div class="stat-card green" style="transform: rotate(1deg);">
+            <div class="stat-title">💰 總銷售額</div>
+            <div class="stat-value">$<span id="stat-total-sales">0</span></div>
+            <div class="stat-sub">本場次小計</div>
+        </div>
+        <div class="stat-card pink" style="transform: rotate(-0.5deg);">
+            <div class="stat-title">⚠️ 未收帳款</div>
+            <div class="stat-value debt-highlight">$<span id="stat-total-debt">0</span></div>
+            <div class="stat-sub">需要追蹤</div>
+        </div>
     </section>
 
+    <div class="dashboard-row">
+        <section class="admin-box" style="background: #f4f4f4; transform: rotate(-0.5deg); margin-bottom: 0;">
+            <h2>🏆 熱門餐點 Top 5</h2>
+            <ul id="top-items-list" class="top-items-list">
+                <p style="text-align: center; color: #888;">統計中...</p>
+            </ul>
+        </section>
+
+        <section class="admin-box" style="background: var(--accent-pink); transform: rotate(0.5deg); margin-bottom: 0;">
+            <h2>☎️ 打電話用：統整清單</h2>
+            <div id="summary-header" class="summary-header-info">讀取中...</div>
+            <ul id="aggregated-order-list" class="summary-list">
+                <li>計算中...</li>
+            </ul>
+        </section>
+    </div>
+
     <section class="admin-box">
-        <h2>💰 訂單明細與管理 (當前場次)</h2>
+        <h2>💰 訂單明細與管理</h2>
         <table class="order-table">
             <thead>
                 <tr>
@@ -97,7 +178,7 @@
                 </tbody>
             <tfoot>
                 <tr style="font-weight: bold; background: #f0f0f0;">
-                    <td colspan="2" style="text-align: right;">當前場次合計:</td>
+                    <td colspan="2" style="text-align: right;">合計:</td>
                     <td>$<span id="grand-total-due">0</span></td>
                     <td>$<span id="grand-total-paid">0</span></td>
                     <td colspan="2" style="color: red;">未收: $<span id="grand-total-debt">0</span></td>

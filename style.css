@@ -124,3 +124,34 @@ body.order-closed .cart-fab { display: none; }
 
 .toast-icon { font-size: 1.2rem; margin-right: 10px; }
 .toast-message { flex-grow: 1; }
+
+/* --- v13.0 新增：Toast 提示訊息樣式 (前後台共用) --- */
+.toast-container {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 2000; /* 確保在最上層 */
+    width: 90%; max-width: 400px;
+    display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+
+.toast {
+    background: white; padding: 12px 20px; border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    display: flex; align-items: center; justify-content: space-between;
+    font-weight: bold; font-size: 1rem;
+    opacity: 0; transform: translateY(-20px);
+    animation: toast-slide-in 0.3s forwards ease-out;
+    border-left: 5px solid #ccc;
+    pointer-events: auto;
+    border: 2px solid var(--line-color); /* 加入手繪邊框風格 */
+}
+
+.toast.success { border-left-color: var(--success-green); background: #f0fff0; color: darkgreen; }
+.toast.error { border-left-color: var(--danger-red); background: #fff0f0; color: darkred; }
+
+@keyframes toast-slide-in { to { opacity: 1; transform: translateY(0); } }
+
+.toast.hide { animation: toast-slide-out 0.3s forwards ease-in; }
+@keyframes toast-slide-out { to { opacity: 0; transform: translateY(-20px); } }
+
+.toast-icon { font-size: 1.2rem; margin-right: 10px; }
+.toast-message { flex-grow: 1; }
