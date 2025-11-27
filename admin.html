@@ -197,10 +197,22 @@
     <section class="admin-box">
         <h2>📤 開啟新團購 & 發布菜單</h2>
         <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。系統會自動在背景比對變更。</p>
+        
         <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
         
-        <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結，方便同事看照片">
+        <div id="tweaker-controls" style="margin-bottom: 15px; text-align: center;">
+            <button id="btn-parse-tweak" class="btn" style="background: var(--accent-blue); font-size: 1rem;">👀 解析並微調內容</button>
+        </div>
 
+        <div id="json-tweaker-container" class="tweaker-container" style="display: none;">
+            <div id="tweaker-items-list"></div>
+            <div class="tweaker-actions">
+                <button id="btn-cancel-tweak" class="btn btn-delete" style="font-size: 1rem;">取消</button>
+                <button id="btn-apply-tweak" class="btn" style="background: var(--success-green); font-size: 1.1rem;">✅ 確認修改並產生新的 JSON</button>
+            </div>
+        </div>
+        
+        <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結，方便同事看照片">
         <div class="time-input-container">
             <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
             <input type="time" id="deadline-time-input" value="11:30">

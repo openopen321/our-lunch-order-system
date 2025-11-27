@@ -155,3 +155,33 @@ body.order-closed .cart-fab { display: none; }
 
 .toast-icon { font-size: 1.2rem; margin-right: 10px; }
 .toast-message { flex-grow: 1; }
+
+/* --- v14.0 新增：JSON 微調助手樣式 --- */
+.tweaker-container {
+    background: #f8f8f8; border: 3px dashed var(--line-color); border-radius: 15px;
+    padding: 20px; margin-bottom: 20px;
+}
+
+.tweaker-category-card {
+    background: white; border: 2px solid var(--line-color); border-radius: 10px;
+    padding: 15px; margin-bottom: 15px; box-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+}
+.tweaker-cat-title {
+    font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; padding-bottom: 5px;
+    border-bottom: 2px dashed #ccc; color: var(--line-color);
+}
+.tweaker-item-row {
+    display: flex; gap: 10px; margin-bottom: 8px; align-items: center;
+}
+/* 微調輸入框樣式 */
+.tweak-input-name { flex-grow: 2; }
+.tweak-input-price { flex-grow: 1; max-width: 80px; text-align: center; }
+.tweaker-item-row input[type="text"], .tweaker-item-row input[type="number"] {
+    padding: 6px; border: 2px solid #ccc; border-radius: 5px; font-family: inherit; font-size: 0.95rem; margin: 0;
+}
+.tweaker-item-row input:focus { border-color: var(--accent-blue); outline: none; box-shadow: 0 0 0 2px var(--accent-blue); }
+
+/* 底部按鈕區 */
+.tweaker-actions {
+    display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 3px dashed var(--line-color);
+}

@@ -1,4 +1,4 @@
-// admin.js - 後台主邏輯 (v13.0 儀表板升級版)
+// admin.js - 後台主邏輯 (v14.0 JSON微調助手版)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -23,19 +23,29 @@ const historyListEl = document.getElementById('history-list');
 const deadlineTimeInput = document.getElementById('deadline-time-input');
 const deadlineDisplay = document.getElementById('deadline-display');
 const adminMapUrlInput = document.getElementById('admin-map-url');
-// v13.0 新增 DOM
 const statOrderCount = document.getElementById('stat-order-count');
 const statTotalSales = document.getElementById('stat-total-sales');
 const statTotalDebt = document.getElementById('stat-total-debt');
 const topItemsListEl = document.getElementById('top-items-list');
-const toastContainer = document.getElementById('toast-container'); // v13.0
+const toastContainer = document.getElementById('toast-container');
+// v14.0 新增 DOM
+const btnParseTweak = document.getElementById('btn-parse-tweak');
+const jsonTweakerContainer = document.getElementById('json-tweaker-container');
+const tweakerItemsList = document.getElementById('tweaker-items-list');
+const btnCancelTweak = document.getElementById('btn-cancel-tweak');
+const btnApplyTweak = document.getElementById('btn-apply-tweak');
+const tweakerControls = document.getElementById('tweaker-controls');
+
 
 let currentSessionId = null;
 let unsubscribeOrders = null;
 let currentMenuData = null;
 let isOrderClosed = false;
+// v14.0: 用於暫存解析後的資料結構
+let tempTweakerData = { restaurantName: '', restaurantPhone: '', categories: [] };
 
-// --- v13.0 新增：Toast 提示訊息函數 (與前台共用邏輯) ---
+
+// --- Toast 提示訊息函數 ---
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.classList.add('toast', type);
@@ -50,7 +60,7 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// --- A. 監聽菜單資訊與狀態 ---
+// --- A. 監聽菜單資訊與狀態 (維持不變) ---
 onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
     if (docSnap.exists()) {
         currentMenuData = docSnap.data();
@@ -103,7 +113,6 @@ onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
         btnCloseOrder.disabled = true;
         deadlineDisplay.textContent = '';
         adminMapUrlInput.value = '';
-        // v13.0: 清空儀表板數據
         updateDashboardStats(0, 0, 0);
         topItemsListEl.innerHTML = '<p style="text-align: center; color: #888;">尚無資料</p>';
     }
@@ -123,7 +132,136 @@ btnCloseOrder.addEventListener('click', async () => {
     }
 });
 
-// --- B. 發布新菜單 ---
+
+// --- v14.0 核心：JSON 微調助手邏輯 ---
+
+// 1. 解析並顯示微調介面
+btnParseTweak.addEventListener('click', () => {
+    const jsonString = adminJsonInput.value.trim();
+    if (!jsonString) { showToast('請先貼上 JSON 文字！', 'error'); return; }
+
+    try {
+        const data = JSON.parse(jsonString);
+        // 簡單驗證結構
+        if (!data.restaurantName || (!data.menuCategories && !data.menuItems)) {
+            throw new Error('JSON 結構不完整，缺少餐廳名稱或菜單資料。');
+        }
+
+        // 暫存資料
+        tempTweakerData.restaurantName = data.restaurantName;
+        tempTweakerData.restaurantPhone = data.restaurantPhone || '';
+        tempTweakerData.categories = [];
+
+        // 統一格式化為分類結構，方便渲染
+        if (data.menuCategories) {
+            tempTweakerData.categories = data.menuCategories;
+        } else if (data.menuItems) {
+            tempTweakerData.categories = [{ categoryName: '未分類項目', items: data.menuItems }];
+        }
+
+        // 渲染微調介面
+        renderTweakerInterface();
+
+        // 切換顯示狀態
+        adminJsonInput.style.display = 'none';
+        tweakerControls.style.display = 'none';
+        jsonTweakerContainer.style.display = 'block';
+        showToast('解析成功，請開始微調。', 'success');
+
+    } catch (e) {
+        showToast('JSON 解析失敗：' + e.message, 'error');
+    }
+});
+
+function renderTweakerInterface() {
+    tweakerItemsList.innerHTML = '';
+    
+    // 顯示餐廳基本資訊 (唯讀，提示用)
+    const infoHeader = document.createElement('div');
+    infoHeader.innerHTML = `<p><strong>餐廳：</strong>${tempTweakerData.restaurantName} ${tempTweakerData.restaurantPhone ? '('+tempTweakerData.restaurantPhone+')' : ''}</p>`;
+    tweakerItemsList.appendChild(infoHeader);
+
+    tempTweakerData.categories.forEach((cat, catIndex) => {
+        const catCard = document.createElement('div');
+        catCard.classList.add('tweaker-category-card');
+        catCard.innerHTML = `<div class="tweaker-cat-title">${cat.categoryName}</div>`;
+        
+        cat.items.forEach((item, itemIndex) => {
+            const row = document.createElement('div');
+            row.classList.add('tweaker-item-row');
+            // 使用 data- 屬性來標記位置，方便後續讀取
+            row.innerHTML = `
+                <input type="text" class="tweak-input-name" value="${item.name}" data-cat="${catIndex}" data-item="${itemIndex}">
+                <input type="number" class="tweak-input-price" value="${item.price}" min="0" data-cat="${catIndex}" data-item="${itemIndex}">
+            `;
+            catCard.appendChild(row);
+        });
+        tweakerItemsList.appendChild(catCard);
+    });
+}
+
+// 2. 取消微調
+btnCancelTweak.addEventListener('click', () => {
+    toggleTweakerView(false);
+});
+
+// 3. 確認修改並重建 JSON
+btnApplyTweak.addEventListener('click', () => {
+    // 讀取所有輸入框的值並更新 tempTweakerData
+    const nameInputs = tweakerItemsList.querySelectorAll('.tweak-input-name');
+    const priceInputs = tweakerItemsList.querySelectorAll('.tweak-input-price');
+
+    let hasError = false;
+    nameInputs.forEach(input => {
+        const catIdx = input.dataset.cat;
+        const itemIdx = input.dataset.item;
+        const newName = input.value.trim();
+        if (!newName) hasError = true;
+        tempTweakerData.categories[catIdx].items[itemIdx].name = newName;
+    });
+    priceInputs.forEach(input => {
+        const catIdx = input.dataset.cat;
+        const itemIdx = input.dataset.item;
+        const newPrice = parseInt(input.value);
+        if (isNaN(newPrice) || newPrice < 0) hasError = true;
+        tempTweakerData.categories[catIdx].items[itemIdx].price = newPrice;
+    });
+
+    if (hasError) {
+        showToast('請檢查輸入：餐點名稱不能為空，價格必須為有效數字。', 'error');
+        return;
+    }
+
+    // 重建最終的 JSON 物件
+    const finalJsonObj = {
+        restaurantName: tempTweakerData.restaurantName,
+        restaurantPhone: tempTweakerData.restaurantPhone,
+        menuCategories: tempTweakerData.categories
+    };
+
+    // 轉成字串並填回文字框
+    adminJsonInput.value = JSON.stringify(finalJsonObj, null, 2); // 使用 2 空格縮排增加可讀性
+
+    toggleTweakerView(false);
+    showToast('✅ 修改已套用！新的 JSON 已產生。', 'success');
+    // 自動捲動到發布按鈕，方便使用者操作
+    publishBtn.scrollIntoView({ behavior: 'smooth' });
+});
+
+function toggleTweakerView(showTweaker) {
+    if (showTweaker) {
+        adminJsonInput.style.display = 'none';
+        tweakerControls.style.display = 'none';
+        jsonTweakerContainer.style.display = 'block';
+    } else {
+        adminJsonInput.style.display = 'block';
+        tweakerControls.style.display = 'block';
+        jsonTweakerContainer.style.display = 'none';
+    }
+}
+
+
+// --- B. 發布新菜單 (維持 v13) ---
 publishBtn.addEventListener('click', async () => {
     const jsonString = adminJsonInput.value.trim();
     const deadlineTimeStr = deadlineTimeInput.value;
@@ -176,6 +314,8 @@ publishBtn.addEventListener('click', async () => {
 
         showToast(`✅ 新場次開啟成功！截止時間：${deadlineDate.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`, 'success');
         adminJsonInput.value = '';
+        // 發布成功後，確保地圖連結也被清空，避免下次誤用
+        adminMapUrlInput.value = ''; 
     } catch (e) { 
         showToast('❌ 發布失敗：' + e.message, 'error');
     } finally {
@@ -184,7 +324,7 @@ publishBtn.addEventListener('click', async () => {
     }
 });
 
-// 自動比對函數
+// 自動比對函數 (維持 v13)
 function generateComparisonSummary(oldData, newData) {
     if (!oldData || oldData.restaurantName !== newData.restaurantName) {
         return null;
@@ -212,7 +352,7 @@ function generateComparisonSummary(oldData, newData) {
     return hasChanges ? summary : null;
 }
 
-// 輔助函數：扁平化菜單
+// 輔助函數：扁平化菜單 (維持 v13)
 function flattenMenu(menuData) {
     const itemsMap = new Map();
     let itemsArray = [];
@@ -226,7 +366,7 @@ function flattenMenu(menuData) {
 }
 
 
-// --- C. 監聽歷史紀錄 ---
+// --- C. 監聽歷史紀錄 (維持 v13) ---
 const historyQ = query(collection(db, 'restaurantHistory'), orderBy('lastUsed', 'desc'));
 onSnapshot(historyQ, (snapshot) => {
     historyListEl.innerHTML = '';
@@ -254,13 +394,13 @@ onSnapshot(historyQ, (snapshot) => {
             adminMapUrlInput.value = data.restaurantMapUrl || '';
             
             adminJsonInput.scrollIntoView({ behavior: 'smooth' });
-            showToast('已載入歷史菜單資料，請確認後發布。', 'info');
+            showToast('已載入歷史菜單資料，您可以點擊「解析並微調」進行修改。', 'info');
         });
         historyListEl.appendChild(li);
     });
 });
 
-// --- D. 訂單監聽與渲染 (v13.0 更新：整合儀表板數據計算) ---
+// --- D. 訂單監聽與渲染 (維持 v13) ---
 function setupOrderListener(sessionId) {
     if (unsubscribeOrders) unsubscribeOrders();
     const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
@@ -272,19 +412,18 @@ function setupOrderListener(sessionId) {
 function renderOrders(querySnapshot) {
     orderTableBody.innerHTML = '';
     let currentOrdersData = [];
-    let stats = { totalDue: 0, totalPaid: 0, orderCount: 0 }; // v13.0 新增 orderCount
+    let stats = { totalDue: 0, totalPaid: 0, orderCount: 0 };
 
     if (querySnapshot.empty) {
         orderTableBody.innerHTML = '<tr><td colspan="6">當前場次尚無訂單</td></tr>';
         aggregatedListEl.innerHTML = '<li>尚未有訂單</li>';
-        // v13.0: 清空儀表板和排行榜
         updateDashboardStats(0, 0, 0);
         renderTopItemsChart({});
         updateFooterStats(0, 0);
         return;
     }
 
-    stats.orderCount = querySnapshot.size; // v13.0: 記錄訂單數
+    stats.orderCount = querySnapshot.size;
 
     querySnapshot.forEach((docSnap) => {
         const order = docSnap.data();
@@ -322,14 +461,12 @@ function renderOrders(querySnapshot) {
         orderTableBody.appendChild(tr);
     });
 
-    // v13.0: 更新儀表板數據
     const totalDebt = stats.totalDue - stats.totalPaid;
     updateDashboardStats(stats.orderCount, stats.totalDue, totalDebt);
     updateFooterStats(stats.totalDue, stats.totalPaid);
     
-    // v13.0: 計算並渲染統整清單與排行榜
     const aggregationResult = calculateAggregation(currentOrdersData);
-    renderTopItemsChart(aggregationResult.summaryMap); // 渲染排行榜
+    renderTopItemsChart(aggregationResult.summaryMap);
 }
 
 // v13.0 新增：更新儀表板戰情卡
@@ -361,12 +498,11 @@ window.updatePaidAmount = async (orderId, newValue) => {
     if (isNaN(amount)) { showToast('請輸入有效的金額', 'error'); return; }
     try { 
         await updateDoc(doc(db, "todayOrders", orderId), { paidAmount: amount }); 
-        // showToast('已更新付款金額', 'success'); // 可以選擇是否要提示，頻繁操作可能太吵
     } 
     catch (e) { showToast('更新失敗：' + e.message, 'error'); }
 }
 
-// --- E. 訂單統整邏輯 (v13.0 修改：回傳 summaryMap 供排行榜使用) ---
+// --- E. 訂單統整邏輯 (v13.0 修改) ---
 function calculateAggregation(orders) {
     const summaryMap = {};
     let totalItemsCount = 0;
@@ -380,7 +516,6 @@ function calculateAggregation(orders) {
         });
     });
     
-    // 渲染統整清單 (打電話用)
     aggregatedListEl.innerHTML = '';
     if (Object.keys(summaryMap).length === 0) { 
         aggregatedListEl.innerHTML = '<li>當前場次尚無訂單</li>'; 
@@ -398,7 +533,7 @@ function calculateAggregation(orders) {
     return { summaryMap, totalItemsCount };
 }
 
-// v13.0 新增：渲染熱門餐點排行榜 (CSS 長條圖)
+// v13.0 新增：渲染熱門餐點排行榜
 function renderTopItemsChart(summaryMap) {
     topItemsListEl.innerHTML = '';
     const itemsArray = Object.entries(summaryMap).map(([name, data]) => ({ name, count: data.count }));
@@ -408,10 +543,9 @@ function renderTopItemsChart(summaryMap) {
         return;
     }
 
-    // 排序並取前 5 名
     itemsArray.sort((a, b) => b.count - a.count);
     const top5 = itemsArray.slice(0, 5);
-    const maxCount = top5[0].count; // 用第一名的數量作為 100% 基準
+    const maxCount = top5[0].count;
 
     top5.forEach((item, index) => {
         const percentage = (item.count / maxCount) * 100;
