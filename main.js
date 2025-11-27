@@ -1,13 +1,12 @@
-// main.js - 前台主邏輯 (v10.0)
+// main.js - 前台主邏輯 (v11.0 浮動購物車版)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, collection, addDoc, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-// 引入獨立的設定檔
 import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// DOM
+// --- DOM 元素參考 ---
 const mainBody = document.getElementById('main-body');
 const menuContainer = document.getElementById('menu-list-container');
 const restaurantNameDisplay = document.getElementById('restaurant-name-display');
@@ -15,7 +14,7 @@ const menuTimeInfoDisplay = document.getElementById('menu-time-info');
 const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
 const usernameInput = document.getElementById('username-input');
 const submitBtn = document.getElementById('submit-btn');
-const personalTotalDisplay = document.getElementById('personal-total');
+// v11.0 移除 personalTotalDisplay
 const liveStatusList = document.getElementById('live-status-list');
 const totalPeopleCountSpan = document.getElementById('total-people-count');
 const mapLinkContainer = document.getElementById('map-link-container');
@@ -23,8 +22,22 @@ const deadlineBanner = document.getElementById('deadline-banner');
 const deadlineFullDateDisplay = document.getElementById('deadline-full-date');
 const countdownTimerDisplay = document.getElementById('countdown-timer');
 
+// v11.0 新增購物車相關 DOM
+const cartFab = document.getElementById('cart-fab');
+const cartCountBadge = document.getElementById('cart-count-badge');
+const cartPanel = document.getElementById('cart-panel');
+const closeCartBtn = document.getElementById('close-cart-btn');
+const cartItemsList = document.getElementById('cart-items-list');
+const cartTotalPriceSpan = document.getElementById('cart-total-price');
+const cartConfirmBtn = document.getElementById('cart-confirm-btn');
+const cartOverlay = document.getElementById('cart-overlay');
+
+
+// --- 狀態變數 ---
 let selectedAvatarChar = null;
-let currentSelectionsMap = new Map();
+// v11.0 修改: cartItems 改為儲存完整的商品物件陣列，不再是 Map
+// 格式: [{ name, price, quantity, note, icon }, ...]
+let cartItems = []; 
 let currentSessionId = null;
 let unsubscribeOrders = null;
 let isManualClosed = false;
@@ -34,7 +47,7 @@ let countdownInterval = null;
 let priceChangeMap = new Map(); 
 let globalItemIndex = 0;
 
-// --- A. 監聽菜單資訊與狀態 ---
+// --- A. 監聽菜單資訊與狀態 (維持不變) ---
 onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
     if (docSnap.exists()) {
         const data = docSnap.data();
@@ -79,6 +92,11 @@ onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
         if (currentSessionId) {
             setupOrderListener(currentSessionId);
         }
+        
+        // v11.0: 菜單更新時清空購物車
+        cartItems = [];
+        updateCartUI();
+
     } else {
         menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
         deadlineBanner.style.display = 'none';
@@ -88,19 +106,13 @@ onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
     }
 });
 
-// 倒數計時功能
+// 倒數計時功能 (維持不變)
 function startCountdown() {
     if (countdownInterval) clearInterval(countdownInterval);
-    
-    if (!deadlineDate) {
-        countdownTimerDisplay.textContent = '---';
-        return;
-    }
-
+    if (!deadlineDate) { countdownTimerDisplay.textContent = '---'; return; }
     const updateTimer = () => {
         const now = new Date();
         const diff = deadlineDate - now;
-
         if (diff <= 0) {
             countdownTimerDisplay.textContent = '⛔ 已截止';
             countdownTimerDisplay.classList.add('countdown-ended');
@@ -110,16 +122,10 @@ function startCountdown() {
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-            
-            const hStr = hours.toString().padStart(2, '0');
-            const mStr = minutes.toString().padStart(2, '0');
-            const sStr = seconds.toString().padStart(2, '0');
-
-            countdownTimerDisplay.textContent = `剩餘 ${hStr}小時 ${mStr}分 ${sStr}秒`;
+            countdownTimerDisplay.textContent = `剩餘 ${hours.toString().padStart(2, '0')}小時 ${minutes.toString().padStart(2, '0')}分 ${seconds.toString().padStart(2, '0')}秒`;
             countdownTimerDisplay.classList.remove('countdown-ended');
         }
     };
-
     updateTimer();
     countdownInterval = setInterval(updateTimer, 1000);
 }
@@ -128,8 +134,7 @@ function processPriceChanges(summary) {
     priceChangeMap.clear();
     if (summary && summary.changedItems) {
         summary.changedItems.forEach(item => {
-            const diff = item.newPrice - item.oldPrice;
-            priceChangeMap.set(item.name, diff);
+            priceChangeMap.set(item.name, item.newPrice - item.oldPrice);
         });
     }
 }
@@ -151,11 +156,11 @@ function updateFormState(isLocked, isTimeUp) {
         else submitBtn.textContent = '⛔ 已手動結單，停止點餐';
         submitBtn.disabled = true;
         usernameInput.disabled = true;
+        closeCart(); // 結單時關閉購物車
     } else {
         mainBody.classList.remove('order-closed');
-        submitBtn.textContent = '✅ 送出訂單';
+        checkSubmitButtonState(); // 按鈕狀態由購物車決定
         usernameInput.disabled = false;
-        checkSubmitButtonState();
     }
 }
 
@@ -184,38 +189,27 @@ function getIconForDish(dishName) {
     return '🍽️';
 }
 
-// renderMenu
+// renderMenu (維持不變)
 function renderMenu(data) {
     menuContainer.innerHTML = '';
-    currentSelectionsMap.clear();
-    updatePersonalSummary();
     globalItemIndex = 0;
-
     if (data.menuCategories && Array.isArray(data.menuCategories)) {
         data.menuCategories.forEach(category => {
             const titleEl = document.createElement('div');
             titleEl.classList.add('category-title');
             titleEl.textContent = category.categoryName;
             menuContainer.appendChild(titleEl);
-
             const listEl = document.createElement('div');
             listEl.classList.add('menu-grid');
-            category.items.forEach(item => {
-                listEl.appendChild(createMenuItemElement(item));
-            });
+            category.items.forEach(item => { listEl.appendChild(createMenuItemElement(item)); });
             menuContainer.appendChild(listEl);
         });
     } else if (data.menuItems && Array.isArray(data.menuItems)) {
         const listEl = document.createElement('div');
         listEl.classList.add('menu-grid');
-        data.menuItems.forEach(item => {
-            listEl.appendChild(createMenuItemElement(item));
-        });
+        data.menuItems.forEach(item => { listEl.appendChild(createMenuItemElement(item)); });
         menuContainer.appendChild(listEl);
-    } else {
-            menuContainer.innerHTML = '<p>菜單資料格式錯誤或為空。</p>';
-    }
-
+    } else { menuContainer.innerHTML = '<p>菜單資料格式錯誤或為空。</p>'; }
     setupScrollAnimations();
 }
 
@@ -228,31 +222,23 @@ function setupScrollAnimations() {
             }
         });
     }, { threshold: 0.1 });
-
-    const menuItems = document.querySelectorAll('.menu-item-checkbox');
-    menuItems.forEach(item => {
-        observer.observe(item);
-    });
+    document.querySelectorAll('.menu-item-checkbox').forEach(item => observer.observe(item));
 }
 
-// 建立菜單項目元素
+// --- v11.0 核心：購物車邏輯 ---
+
+// 1. 建立菜單項目 (點擊加入購物車)
 function createMenuItemElement(item) {
     const el = document.createElement('div');
     el.classList.add('menu-item-checkbox');
-
     el.style.transitionDelay = `${globalItemIndex * 0.025}s`;
     globalItemIndex++;
 
     let priceNoteHtml = '';
     if (priceChangeMap.has(item.name)) {
         const diff = priceChangeMap.get(item.name);
-        if (diff > 0) {
-            priceNoteHtml = `<span class="price-note-up">(漲${diff})</span>`;
-        } else if (diff < 0) {
-            priceNoteHtml = `<span class="price-note-down">(降${Math.abs(diff)})</span>`;
-        }
+        priceNoteHtml = diff > 0 ? `<span class="price-note-up">(漲${diff})</span>` : `<span class="price-note-down">(降${Math.abs(diff)})</span>`;
     }
-
     const dishIcon = getIconForDish(item.name);
 
     el.innerHTML = `
@@ -260,68 +246,139 @@ function createMenuItemElement(item) {
             <div class="food-icon-wrapper">${dishIcon}</div>
             <div class="food-info">
                 <span>${item.name}</span>
-                <div>
-                    <b>$${item.price}</b>${priceNoteHtml}
-                </div>
+                <div><b>$${item.price}</b>${priceNoteHtml}</div>
             </div>
-            <div class="checkbox-square"></div>
-        </div>
-        <div class="item-details-container">
-            <div class="quantity-controls" style="margin-bottom: 10px;">
-                <button class="qty-btn minus">-</button>
-                <span>數量: <span class="qty-display">1</span></span>
-                <button class="qty-btn plus">+</button>
             </div>
-            <input type="text" class="note-input" placeholder="備註 (例如: 加辣)">
-        </div>
     `;
     
-    const header = el.querySelector('.menu-item-header');
-    const noteInput = el.querySelector('.note-input');
-    const qtyDisplay = el.querySelector('.qty-display');
-    const minusBtn = el.querySelector('.minus');
-    const plusBtn = el.querySelector('.plus');
-
-    header.addEventListener('click', () => {
+    // v11.0 修改點擊事件：加入購物車並打開面板
+    el.addEventListener('click', () => {
         if (mainBody.classList.contains('order-closed')) return;
-        el.classList.toggle('selected');
-        if (el.classList.contains('selected')) {
-            currentSelectionsMap.set(item.name, { originalItem: item, noteInputDOM: noteInput, quantityDOM: qtyDisplay });
-            qtyDisplay.textContent = '1';
-        } else {
-            currentSelectionsMap.delete(item.name);
-            noteInput.value = ''; 
-        }
-        updatePersonalSummary();
-        checkSubmitButtonState();
+        addToCart(item, dishIcon);
+        openCart(); // 加入後自動打開購物車讓使用者確認
     });
-
-    minusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, -1); });
-    plusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, 1); });
     return el;
 }
 
-function changeQuantity(itemName, delta) {
-    if (mainBody.classList.contains('order-closed')) return;
-    const selection = currentSelectionsMap.get(itemName);
-    if (!selection) return;
-    let currentQty = parseInt(selection.quantityDOM.textContent);
-    let newQty = currentQty + delta;
-    if (newQty < 1) newQty = 1;
-    selection.quantityDOM.textContent = newQty;
-    updatePersonalSummary();
+// 2. 加入購物車
+function addToCart(item, icon) {
+    // 檢查是否已存在 (這裡簡單比對名稱，若要支援同品項不同備註需更複雜的邏輯)
+    const existingItem = cartItems.find(i => i.name === item.name);
+    if (existingItem) {
+        existingItem.quantity++;
+    } else {
+        cartItems.push({
+            name: item.name,
+            price: item.price,
+            quantity: 1,
+            note: '',
+            icon: icon
+        });
+    }
+    updateCartUI();
+    updateMenuSelectionState(); // 更新菜單上的選中狀態
 }
 
-function updatePersonalSummary() {
-    let total = 0;
-    currentSelectionsMap.forEach(sel => {
-        total += sel.originalItem.price * parseInt(sel.quantityDOM.textContent);
+// 3. 更新購物車介面 (Badge, Total, List)
+function updateCartUI() {
+    // 更新角標數量
+    const totalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    cartCountBadge.textContent = totalCount;
+    cartCountBadge.setAttribute('data-count', totalCount);
+
+    // 更新總金額
+    const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    cartTotalPriceSpan.textContent = totalPrice;
+
+    // 重新渲染購物車清單
+    cartItemsList.innerHTML = '';
+    if (cartItems.length === 0) {
+        cartItemsList.innerHTML = '<p class="empty-cart-msg">您還沒有選擇任何餐點喔！</p>';
+    } else {
+        cartItems.forEach((item, index) => {
+            const itemEl = document.createElement('div');
+            itemEl.classList.add('cart-item');
+            itemEl.innerHTML = `
+                <div class="cart-item-header">
+                    <div><span style="font-size:1.2rem">${item.icon}</span> <span class="cart-item-name">${item.name}</span></div>
+                    <div class="cart-item-price">$${item.price * item.quantity}</div>
+                </div>
+                <div class="cart-item-controls">
+                    <div class="cart-qty-controls">
+                        <button class="cart-qty-btn minus">-</button>
+                        <span>${item.quantity}</span>
+                        <button class="cart-qty-btn plus">+</button>
+                    </div>
+                    <span class="cart-item-remove">刪除</span>
+                </div>
+                <input type="text" class="cart-item-note-input" placeholder="備註 (例如: 加辣)" value="${item.note}">
+            `;
+
+            // 綁定事件
+            itemEl.querySelector('.minus').addEventListener('click', () => updateCartItemQuantity(index, -1));
+            itemEl.querySelector('.plus').addEventListener('click', () => updateCartItemQuantity(index, 1));
+            itemEl.querySelector('.cart-item-remove').addEventListener('click', () => removeFromCart(index));
+            itemEl.querySelector('.cart-item-note-input').addEventListener('input', (e) => { item.note = e.target.value.trim(); });
+            
+            cartItemsList.appendChild(itemEl);
+        });
+    }
+    checkSubmitButtonState();
+}
+
+// 4. 更新購物車商品數量
+function updateCartItemQuantity(index, delta) {
+    const item = cartItems[index];
+    item.quantity += delta;
+    if (item.quantity <= 0) {
+        removeFromCart(index);
+    } else {
+        updateCartUI();
+    }
+}
+
+// 5. 從購物車移除
+function removeFromCart(index) {
+    cartItems.splice(index, 1);
+    updateCartUI();
+    updateMenuSelectionState();
+}
+
+// 6. 更新菜單卡片的選中狀態 (視覺回饋)
+function updateMenuSelectionState() {
+    const menuCards = document.querySelectorAll('.menu-item-checkbox');
+    menuCards.forEach(card => {
+        const itemName = card.querySelector('.food-info span').textContent;
+        // 檢查這個品項是否在購物車裡
+        const isInCart = cartItems.some(item => item.name === itemName);
+        if (isInCart) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
     });
-    personalTotalDisplay.textContent = total;
 }
 
-// --- B. 用戶輸入互動 ---
-// 將 selectAvatar 掛載到 window 物件上，因為 HTML onclick 會用到它
+// 7. 開啟/關閉購物車面板
+function openCart() {
+    cartPanel.classList.add('open');
+    cartOverlay.classList.add('show');
+    document.body.style.overflow = 'hidden'; // 防止背景滾動
+}
+function closeCart() {
+    cartPanel.classList.remove('open');
+    cartOverlay.classList.remove('show');
+    document.body.style.overflow = ''; // 恢復背景滾動
+}
+
+// 綁定購物車開關事件
+cartFab.addEventListener('click', openCart);
+closeCartBtn.addEventListener('click', closeCart);
+cartOverlay.addEventListener('click', closeCart);
+cartConfirmBtn.addEventListener('click', closeCart); // 確認後關閉
+
+
+// --- B. 用戶輸入互動 (維持 v10) ---
 window.selectAvatar = (element, char) => {
     if (mainBody.classList.contains('order-closed')) return;
     document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
@@ -330,19 +387,31 @@ window.selectAvatar = (element, char) => {
     checkSubmitButtonState();
 }
 
+// v11.0 修改：按鈕狀態檢查邏輯
 function checkSubmitButtonState() {
     if (mainBody.classList.contains('order-closed')) {
-        submitBtn.disabled = true; return;
-    }
-    if (selectedAvatarChar && usernameInput.value.trim() !== '' && currentSelectionsMap.size > 0 && currentSessionId) {
-        submitBtn.disabled = false;
-    } else {
         submitBtn.disabled = true;
+        submitBtn.textContent = submitBtn.textContent.includes('時間到') ? '⛔ 時間已到，停止點餐' : '⛔ 已手動結單，停止點餐';
+        return;
+    }
+
+    const isCartEmpty = cartItems.length === 0;
+    const isUserReady = selectedAvatarChar && usernameInput.value.trim() !== '';
+    
+    if (isCartEmpty) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '請先選擇餐點';
+    } else if (!isUserReady) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '請輸入名字並選擇頭像';
+    } else {
+        submitBtn.disabled = false;
+        submitBtn.textContent = `✅ 送出訂單 ($${cartTotalPriceSpan.textContent})`;
     }
 }
 usernameInput.addEventListener('input', checkSubmitButtonState);
 
-// --- C. 送出訂單 ---
+// --- C. 送出訂單 (v11.0 修改：從 cartItems 讀取資料) ---
 submitBtn.addEventListener('click', async () => {
     if (submitBtn.disabled || mainBody.classList.contains('order-closed')) return;
     if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
@@ -351,18 +420,14 @@ submitBtn.addEventListener('click', async () => {
     submitBtn.textContent = '正在送出...';
     submitBtn.disabled = true;
 
-    const itemsToOrder = [];
-    let totalCost = 0;
-    currentSelectionsMap.forEach(sel => {
-        const qty = parseInt(sel.quantityDOM.textContent);
-        itemsToOrder.push({
-            name: sel.originalItem.name,
-            price: sel.originalItem.price,
-            note: sel.noteInputDOM.value.trim(),
-            quantity: qty
-        });
-        totalCost += sel.originalItem.price * qty;
-    });
+    // v11.0: 直接使用 cartItems 陣列
+    const itemsToOrder = cartItems.map(item => ({
+        name: item.name,
+        price: item.price,
+        note: item.note,
+        quantity: item.quantity
+    }));
+    const totalCost = parseInt(cartTotalPriceSpan.textContent);
 
     try {
         await addDoc(collection(db, "todayOrders"), {
@@ -375,15 +440,22 @@ submitBtn.addEventListener('click', async () => {
             orderTime: serverTimestamp()
         });
         alert(`✅ ${userName}，訂單送出成功！`);
-        window.location.reload(); 
+        // 送出成功後清空購物車與輸入
+        cartItems = [];
+        updateCartUI();
+        updateMenuSelectionState();
+        usernameInput.value = '';
+        document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
+        selectedAvatarChar = null;
+        checkSubmitButtonState();
+        // 不用 reload，體驗更好
     } catch (e) {
         alert('❌ 訂購失敗：' + e.message);
-        submitBtn.disabled = false;
-        submitBtn.textContent = '✅ 送出訂單';
+        checkSubmitButtonState(); // 恢復按鈕狀態
     }
 });
 
-// --- D. 即時監聽點餐狀況 ---
+// --- D. 即時監聽點餐狀況 (維持 v10) ---
 function setupOrderListener(sessionId) {
     if (unsubscribeOrders) unsubscribeOrders();
     const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v10.0 模組化版)</title>
+    <title>✏️ 今天吃什麼？(v11.0 浮動購物車版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
@@ -59,33 +59,28 @@
             border-radius: 50% 45% 55% 50% / 50% 55% 45% 50%;
             transform: rotate(-3deg); flex-shrink: 0; box-shadow: 2px 2px 4px var(--paper-shadow);
         }
+        /* v11.0 修改：選中狀態不再需要 checkbox-square */
         .menu-item-checkbox.selected { 
             background: var(--accent-yellow); outline: 3px solid var(--line-color);
             transform: scale(1.05) translateY(-8px) rotate(-2deg) skewX(-2deg) !important; 
             box-shadow: 10px 10px 20px var(--sticker-shadow-deep) !important; z-index: 5;
         }
         .menu-item-checkbox:active { transform: scale(0.98) rotate(-0.5deg) skewX(-0.5deg) !important; box-shadow: 3px 3px 6px var(--sticker-shadow) !important; }
-        .checkbox-square {
-            width: 18px; height: 18px; border: 2px solid var(--line-color); margin-right: 8px;
-            display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; background: white; border-radius: 4px;
-        }
-        .menu-item-checkbox.selected .checkbox-square { background: white; color: var(--line-color);}
-        .menu-item-checkbox.selected .checkbox-square::after { content: '✓'; }
+        /* v11.0 修改：隱藏 checkbox-square，改用購物車邏輯 */
+        .checkbox-square { display: none; }
+
         .food-info { flex-grow: 1; font-size: 1rem; display: flex; flex-wrap: wrap; align-items: center; line-height: 1.2;}
         .food-info b { margin-left: 5px; font-size: 1.1rem;}
-        .item-details-container { display: none; padding: 10px; background: rgba(255,255,255,0.5); border-top: 2px dashed var(--line-color); border-radius: 0 0 15px 15px; }
-        .menu-item-checkbox.selected .item-details-container { display: block; }
+        
+        /* v11.0 修改：隱藏原來的 item-details-container，改在購物車裡操作 */
+        .item-details-container { display: none !important; }
+        
         .note-input, input[type="text"] {
             width: 100%; padding: 8px; font-family: inherit; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px;
             background: white; outline: 2px dashed var(--line-color); border: 3px solid white; border-radius: 8px; box-shadow: 3px 3px 5px var(--paper-shadow);
         }
         .note-input:focus, input[type="text"]:focus { outline: 2px solid var(--line-color); }
-        .quantity-controls { display: flex; align-items: center; justify-content: space-between; font-weight: bold; font-size: 0.9rem;}
-        .qty-btn { 
-            width: 30px; height: 30px; border-radius: 50%; background: white; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
-            outline: 2px dashed var(--line-color); border: 2px solid white; box-shadow: 2px 2px 3px var(--paper-shadow); transition: all 0.1s;
-        }
-        .qty-btn:active { background: var(--accent-yellow); transform: scale(0.9); box-shadow: 1px 1px 1px var(--paper-shadow);}
+        
         .user-input-section { padding: 0; }
         .avatar-selector { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;}
         .avatar-option {
@@ -133,15 +128,12 @@
         <div id="menu-list-container">
             <p style="text-align: center;">正在載入菜單...</p>
         </div>
-        <hr style="border: none; border-top: 3px dashed var(--line-color); margin: 25px 0; opacity: 0.5;">
-        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 1.2rem;">
-            您的選擇總計： $<span id="personal-total">0</span>
-        </div>
-    </main>
+        </main>
 
     <section id="input-section" class="hand-drawn-box input-section">
         <div class="user-input-section">
             <h3 style="margin-top: 0;">輪到你點餐了：</h3>
+            <p style="text-align: center; margin-bottom: 15px; font-size: 0.9rem; color: #666;">(請先點選上方菜單，再到右下角購物車確認)</p>
             <input type="text" id="username-input" placeholder="請輸入你的名字 (例如：小陳)">
             
             <p style="text-align: center; margin: 15px 0 10px 0; font-weight: bold; font-size: 1.1rem;">選擇一個頭像貼紙：</p>
@@ -155,7 +147,7 @@
             </div>
 
             <div class="submit-btn-wrapper">
-                <button id="submit-btn" class="submit-btn" disabled>✅ 送出訂單</button>
+                <button id="submit-btn" class="submit-btn" disabled>請先選擇餐點</button>
             </div>
         </div>
     </section>
@@ -169,6 +161,29 @@
             <p style="text-align: center; opacity: 0.7;">目前還沒有人點餐...</p>
         </ul>
     </section>
+
+    <div id="cart-fab" class="cart-fab">
+        <span class="cart-icon">🛒</span>
+        <span id="cart-count-badge" class="cart-count-badge">0</span>
+    </div>
+
+    <div id="cart-panel" class="cart-panel">
+        <div class="cart-header">
+            <h3>我的餐點清單</h3>
+            <button id="close-cart-btn" class="close-cart-btn">×</button>
+        </div>
+        <div id="cart-items-list" class="cart-items-list">
+            <p class="empty-cart-msg">您還沒有選擇任何餐點喔！</p>
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                總計：$<span id="cart-total-price">0</span>
+            </div>
+            <button id="cart-confirm-btn" class="cart-confirm-btn">確認餐點</button>
+        </div>
+    </div>
+    <div id="cart-overlay" class="cart-overlay"></div>
+
 
     <script type="module" src="main.js"></script>
 </body>
