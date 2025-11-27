@@ -3,238 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v7.5 誇張手撕版)</title>
+    <title>✏️ 今天吃什麼？(v9.1 貼紙風格+新功能)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- CSS v7.5 (誇張手撕風格) --- */
         :root {
             --bg-color: #FFFBE6; --line-color: #4A3F35;
             --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
             --disabled-gray: #e0e0e0; --disabled-text: #888;
             --danger-red: #d9534f; --success-green: #28a745;
-            /* 加深陰影，讓浮貼感更強烈 */
-            --paper-shadow: rgba(0, 0, 0, 0.3);
+            --paper-shadow: rgba(0, 0, 0, 0.15);
+            --sticker-shadow: rgba(0, 0, 0, 0.25);
+            --sticker-shadow-deep: rgba(0, 0, 0, 0.35);
         }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
             background-size: 20px 20px; color: var(--line-color);
-            /* 增加頁面邊距，因為區塊現在歪得很厲害 */
-            margin: 0; padding: 40px 20px; max-width: 500px; margin: auto;
-            padding-bottom: 100px;
+            margin: 0 auto; padding: 20px 15px; max-width: 500px;
+            padding-bottom: 120px; /* v9.1 增加底部留白 */
             overflow-x: hidden;
         }
         h1, h2, h3 { font-weight: normal; text-align: center; margin: 10px 0; }
         
-        /* =========================================
-           v7.5 核心：誇張多層手撕錯覺術 Mixin
-        ========================================= */
-        /* 1. 主體 (最上層，裝內容的) */
-        .torn-paper-stack {
-            position: relative;
+        /* v8.1 風格的盒子 */
+        .hand-drawn-box {
             background: white;
-            padding: 30px; /* 增加內距，防止內容因為形狀太歪而跑出去 */
-            outline: 3px dashed var(--line-color); /* 加粗虛線 */
-            outline-offset: -5px;
-            /* 極端不規則的形狀 */
-            border-radius: 250px 35px 200px 55px / 55px 200px 35px 250px;
-            z-index: 10;
-            /* 基礎變形：稍微旋轉 + 傾斜 */
-            transform: rotate(-2deg) skew(-2deg);
-            margin-bottom: 60px; /* 增加區塊間距 */
-        }
-
-        /* 2. 第一層亂撕白邊 (::before) - 往左上錯位 */
-        .torn-paper-stack::before {
-            content: ''; position: absolute; z-index: -1; background: white;
-            /* 錯位更大 */
-            top: -15px; left: -10px; right: -5px; bottom: -20px;
-            /* 完全不同的極端形狀 */
-            border-radius: 30px 220px 50px 240px / 240px 50px 220px 30px;
-            /* 反向旋轉和傾斜，製造混亂感 */
-            transform: rotate(4deg) skew(3deg);
-            border: 2px solid rgba(255,255,255,0.8); /* 增加一點邊緣層次 */
-        }
-
-        /* 3. 第二層亂撕白邊 + 陰影 (::after) - 往右下錯位 */
-        .torn-paper-stack::after {
-            content: ''; position: absolute; z-index: -2; background: white;
-            /* 錯位最大 */
-            top: -20px; left: -15px; right: -18px; bottom: -25px;
-            /* 另一種極端形狀 */
-            border-radius: 60% 40% 70% 30% / 30% 70% 40% 60%;
-            /* 不同的角度 */
-            transform: rotate(-5deg) skew(-3deg);
-            /* 更深、更遠的陰影，製造懸空感 */
-            box-shadow: 20px 20px 40px var(--paper-shadow);
-        }
-
-        /* 個別區塊的獨特姿態，避免看起來都一樣 */
-        .menu-section { 
-            transform: rotate(-3deg) skewX(-2deg) !important; 
-            margin-top: 40px;
-        }
-        .input-section { 
-            transform: rotate(2deg) skewY(2deg) !important; 
-             /* 輸入區塊維持藍色底 */
-            background: var(--accent-blue) !important;
-        }
-        /* 輸入區塊的偽元素也要跟著變色 */
-        .input-section::before, .input-section::after { background: var(--accent-blue) !important; }
-
-        .status-section { 
-            transform: rotate(-1deg) skew(-4deg) !important;
-            background: var(--accent-green) !important;
-        }
-        .status-section::before, .status-section::after { background: var(--accent-green) !important; }
-
-        
-        header { text-align: center; margin-bottom: 50px; transform: rotate(2deg) skew(-2deg);}
-        header h1 { 
-            display: inline-block; padding: 10px 20px; margin-bottom: 10px;
-            /* 標題也要手撕感 */
-            background: var(--accent-yellow);
-            border: 4px solid white; outline: 3px dashed var(--line-color);
-            border-radius: 15px 255px 15px 225px / 225px 15px 255px 15px;
-            box-shadow: 5px 5px 0 rgba(0,0,0,0.2);
-            transform: rotate(-3deg);
-        }
-        .restaurant-name { font-size: 1.4rem; font-weight: bold; margin-bottom: 5px; margin-top: 15px;}
-        
-        /* 結單狀態：變回死板 */
-        body.order-closed .torn-paper-stack {
-            opacity: 0.8; filter: grayscale(0.8); pointer-events: none;
-            outline: 5px solid #888 !important; border-radius: 0 !important; 
-            transform: none !important; box-shadow: none !important; margin: 20px 0;
-        }
-        body.order-closed .torn-paper-stack::before,
-        body.order-closed .torn-paper-stack::after { display: none !important; }
-
-
-        /* ----------------------------------
-           內部元素的樣式調整 (配合誇張風格)
-        ---------------------------------- */
-        .category-title {
-            text-align: left; font-size: 1.2rem; font-weight: bold; 
-            margin: 25px 0 15px 0; display: inline-block; padding: 10px 20px;
-            background: var(--accent-yellow); 
-            outline: 3px dashed var(--line-color); outline-offset: -3px;
+            border-radius: 20px;
+            outline: 3px dashed var(--line-color); outline-offset: -5px;
             border: 4px solid white;
-            border-radius: 255px 25px 225px 35px / 35px 225px 25px 255px;
-            box-shadow: 5px 5px 10px var(--paper-shadow); transform: rotate(-2deg) skew(-2deg);
-        }
-
-        .menu-list-vertical { display: flex; flex-direction: column; gap: 20px; padding: 10px;}
-        
-        /* 菜單項目紙條 */
-        .menu-item-checkbox {
-            background: white; overflow: visible; transition: all 0.3s; position: relative;
-            outline: 2px dashed var(--line-color); outline-offset: -2px;
-            border: 4px solid white;
-            border-radius: 15px 255px 15px 225px / 225px 15px 255px 15px;
             box-shadow: 5px 5px 15px var(--paper-shadow);
-            transform: rotate(0.5deg); /* 每個項目都稍微歪一點 */
+            padding: 20px; margin-bottom: 30px;
+            transform: rotate(-0.5deg);
+            transition: all 0.3s;
+        }
+        
+        .input-section { background: var(--accent-blue) !important; transform: rotate(0.5deg); }
+        .status-section { background: var(--accent-green) !important; transform: rotate(-0.3deg); }
+
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 { 
+            display: inline-block; padding: 8px 20px; margin-bottom: 10px;
+            background: var(--accent-yellow); border-radius: 15px 25px 15px 25px;
+            outline: 3px dashed var(--line-color); border: 3px solid white;
+            box-shadow: 3px 3px 0 rgba(0,0,0,0.1); transform: rotate(-1deg);
+        }
+        .restaurant-name { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; margin-top: 15px;}
+        .menu-time-info { font-size: 0.85rem; color: #666; margin-bottom: 10px;}
+
+        /* v9.0 功能維持：地圖按鈕樣式 */
+        .map-link-btn {
+            display: inline-block; text-decoration: none; color: white; font-weight: bold;
+            background-color: var(--line-color);
+            padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; margin-top: 5px;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+            transition: all 0.1s;
+        }
+        .map-link-btn:active { transform: translate(1px, 1px); box-shadow: none; }
+
+        /* v9.0 功能維持：倒數計時看板 (套用 hand-drawn-box 樣式) */
+        .deadline-banner {
+            background-color: var(--accent-pink) !important; transform: rotate(0.5deg);
+            text-align: center; padding: 15px; margin-bottom: 30px;
+        }
+        .deadline-title { font-size: 1.3rem; font-weight: bold; margin: 0 0 10px 0; }
+        .deadline-full-date { font-size: 1rem; margin-bottom: 5px; }
+        .countdown-timer { font-size: 1.5rem; font-weight: bold; color: var(--danger-red); background: white; padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); display: inline-block; margin-top: 5px;}
+        .countdown-ended { color: var(--disabled-text); background: #eee; border-color: #aaa;}
+
+        .deadline-highlight { color: var(--danger-red); font-weight: bold; }
+        .price-note-up { color: var(--danger-red); font-size: 0.85rem; margin-left: 3px; font-weight: bold;}
+        .price-note-down { color: var(--success-green); font-size: 0.85rem; margin-left: 3px; font-weight: bold;}
+
+        body.order-closed .hand-drawn-box {
+            opacity: 0.8; filter: grayscale(0.8); pointer-events: none;
+            outline: 3px solid #aaa !important; border-radius: 10px !important; 
+            transform: none !important; box-shadow: none !important;
         }
 
-        /* 圖示貼紙 */
+        .category-title {
+            text-align: left; font-size: 1.1rem; font-weight: bold; 
+            margin: 25px 0 15px 0; display: inline-block; padding: 8px 15px;
+            background: var(--accent-yellow); 
+            outline: 2px dashed var(--line-color); border: 3px solid white;
+            border-radius: 10px 20px 10px 20px;
+            box-shadow: 3px 3px 5px var(--paper-shadow); transform: rotate(-1deg);
+        }
+
+        /* Grid 網格與快速貼紙動畫 (v8.1) */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            padding: 5px;
+        }
+        
+        .menu-item-checkbox {
+            background: white; overflow: visible;
+            transition: all 0.15s cubic-bezier(0.25, 0.8, 0.25, 1);
+            outline: 2px dashed var(--line-color); outline-offset: -2px;
+            border: 3px solid white; border-radius: 15px;
+            opacity: 0;
+            transform: translateY(30px) scale(0.9); 
+            box-shadow: none;
+            display: flex; flex-direction: column;
+        }
+
+        .menu-item-checkbox.show {
+            opacity: 1;
+            transform: translateY(0) scale(1) rotate(-1deg) skewX(-1deg);
+            box-shadow: 6px 6px 12px var(--sticker-shadow);
+        }
+
+        .menu-item-header { display: flex; align-items: center; padding: 10px; cursor: pointer; flex-grow: 1; }
+
         .food-icon-wrapper {
-            width: 48px; height: 48px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 2rem; margin-right: 15px;
-            background: #fff; position: relative; z-index: 2;
-            outline: 3px dashed var(--line-color); outline-offset: -2px;
-            border: 3px solid white;
-            border-radius: 60% 40% 70% 30% / 30% 70% 40% 60%;
-            transform: rotate(-8deg) scale(1.1); flex-shrink: 0;
-            box-shadow: 3px 3px 8px var(--paper-shadow);
+            width: 36px; height: 36px; font-size: 1.6rem; margin-right: 8px;
+            background: #fff; outline: 2px dashed var(--line-color); border: 2px solid white;
+            border-radius: 50% 45% 55% 50% / 50% 55% 45% 50%;
+            transform: rotate(-3deg); flex-shrink: 0;
+            box-shadow: 2px 2px 4px var(--paper-shadow);
         }
 
-        /* 選中狀態 */
         .menu-item-checkbox.selected { 
             background: var(--accent-yellow); 
-            outline: 4px solid var(--line-color);
-            transform: scale(1.03) rotate(-1.5deg) translate(-5px, -5px); /* 選中時浮起來並歪掉 */
+            outline: 3px solid var(--line-color);
+            transform: scale(1.05) translateY(-8px) rotate(-2deg) skewX(-2deg) !important; 
+            box-shadow: 10px 10px 20px var(--sticker-shadow-deep) !important;
             z-index: 5;
-            box-shadow: 15px 15px 30px var(--paper-shadow);
         }
 
-        .menu-item-header { display: flex; align-items: center; padding: 15px; cursor: pointer; }
-        .checkbox-square {
-            width: 22px; height: 22px; border: 3px solid var(--line-color); margin-right: 12px;
-            display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; background: white;
-            border-radius: 5px; transform: rotate(3deg);
+        .menu-item-checkbox:active {
+            transform: scale(0.98) rotate(-0.5deg) skewX(-0.5deg) !important;
+            box-shadow: 3px 3px 6px var(--sticker-shadow) !important;
         }
-        .menu-item-checkbox.selected .checkbox-square { transform: rotate(-3deg) scale(1.1); }
+
+        .checkbox-square {
+            width: 18px; height: 18px; border: 2px solid var(--line-color); margin-right: 8px;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; background: white;
+            border-radius: 4px;
+        }
+        .menu-item-checkbox.selected .checkbox-square { background: white; color: var(--line-color);}
         .menu-item-checkbox.selected .checkbox-square::after { content: '✓'; }
-        .food-info { flex-grow: 1; font-size: 1.2rem; display: flex; align-items: center; flex-wrap: wrap;}
+        .food-info { flex-grow: 1; font-size: 1rem; display: flex; flex-wrap: wrap; align-items: center; line-height: 1.2;}
+        .food-info b { margin-left: 5px; font-size: 1.1rem;}
         
         .item-details-container {
-            display: none; padding: 20px; background: rgba(255,255,255,0.6);
-            border-top: 3px dashed var(--line-color);
+            display: none; padding: 10px; background: rgba(255,255,255,0.5);
+            border-top: 2px dashed var(--line-color);
+            border-radius: 0 0 15px 15px;
         }
         .menu-item-checkbox.selected .item-details-container { display: block; }
         
-        /* 輸入框和按鈕 */
         .note-input, input[type="text"] {
-            width: 100%; padding: 15px; font-family: inherit; font-size: 1.1rem; box-sizing: border-box; margin-bottom: 20px;
-            background: white; outline: 3px dashed var(--line-color); border: 4px solid white;
-            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-            box-shadow: 5px 5px 10px var(--paper-shadow); transform: rotate(0.5deg);
+            width: 100%; padding: 8px; font-family: inherit; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px;
+            background: white; outline: 2px dashed var(--line-color); border: 3px solid white;
+            border-radius: 8px; box-shadow: 3px 3px 5px var(--paper-shadow);
         }
-        .note-input:focus, input[type="text"]:focus { outline: 3px solid var(--line-color); transform: scale(1.02); }
+        .note-input:focus, input[type="text"]:focus { outline: 2px solid var(--line-color); }
 
+        .quantity-controls { display: flex; align-items: center; justify-content: space-between; font-weight: bold; font-size: 0.9rem;}
         .qty-btn { 
-            width: 40px; height: 40px; border-radius: 50%; background: white; cursor: pointer; font-size: 1.4rem; display: flex; align-items: center; justify-content: center;
-            outline: 3px dashed var(--line-color); border: 3px solid white; box-shadow: 3px 3px 6px var(--paper-shadow);
-            transform: rotate(odd) rotate(5deg) even rotate(-5deg);
+            width: 30px; height: 30px; border-radius: 50%; background: white; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+            outline: 2px dashed var(--line-color); border: 2px solid white; box-shadow: 2px 2px 3px var(--paper-shadow);
+            transition: all 0.1s;
         }
-        .qty-btn:active { background: var(--accent-yellow); transform: scale(0.9); box-shadow: none; border-color: var(--accent-yellow);}
+        .qty-btn:active { background: var(--accent-yellow); transform: scale(0.9); box-shadow: 1px 1px 1px var(--paper-shadow);}
 
-        .user-input-section { padding: 10px; }
+        .user-input-section { padding: 0; }
         
-        .avatar-selector { display: flex; gap: 15px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap;}
+        .avatar-selector { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;}
         .avatar-option {
-            width: 55px; height: 55px; font-size: 2rem; display: flex; align-items: center; justify-content: center; cursor: pointer;
+            width: 48px; height: 48px; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; cursor: pointer;
             background: white; position: relative;
-            outline: 3px dashed var(--line-color); border: 4px solid white;
-            border-radius: 60% 40% 70% 30% / 30% 70% 40% 60%;
-            box-shadow: 5px 5px 10px var(--paper-shadow); transition: all 0.3s;
-            transform: rotate(var(--rot)); /* 用變數隨機旋轉 */
+            outline: 2px dashed var(--line-color); border: 3px solid white;
+            border-radius: 50%; box-shadow: 3px 3px 6px var(--paper-shadow); transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        .avatar-option:nth-child(1) { --rot: 5deg; } .avatar-option:nth-child(2) { --rot: -3deg; }
-        .avatar-option:nth-child(3) { --rot: 8deg; } .avatar-option:nth-child(4) { --rot: -6deg; }
-        .avatar-option:nth-child(5) { --rot: 2deg; } .avatar-option:nth-child(6) { --rot: -9deg; }
-
         .avatar-option.selected { 
-            background: var(--accent-yellow); outline: 4px solid var(--line-color); border-color: var(--accent-yellow);
-            box-shadow: 10px 10px 0 var(--line-color); transform: scale(1.2) rotate(0deg) translate(-5px, -5px) !important; z-index: 10;
+            background: var(--accent-yellow); outline: 3px solid var(--line-color);
+            box-shadow: 6px 6px 0 var(--line-color); transform: scale(1.15) translateY(-5px); z-index: 5;
         }
 
-        /* 送出按鈕 */
         .submit-btn-wrapper { position: relative; width: 100%; padding: 5px;}
         .submit-btn {
             position: relative; z-index: 10;
-            background: var(--accent-pink); font-family: inherit; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.6rem; padding: 18px;
-            outline: 4px dashed var(--line-color); border: none;
-            border-radius: 15px 255px 15px 225px / 255px 15px 225px 15px;
-            transition: all 0.2s; transform: rotate(-1deg);
+            background: var(--accent-pink); font-family: inherit; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.4rem; padding: 15px;
+            outline: 3px dashed var(--line-color); border: none;
+            border-radius: 30px 20px 30px 20px;
+            transition: all 0.1s; box-shadow: 5px 5px 0 var(--line-color);
         }
-        .submit-btn::before {
-            content: ''; position: absolute; z-index: -1; background: white;
-            top: -8px; left: -8px; right: -8px; bottom: -8px;
-            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; transform: rotate(2deg);
-            box-shadow: 10px 10px 0 var(--line-color);
-        }
-        .submit-btn:active { transform: translate(5px, 5px) rotate(-1deg); }
-        .submit-btn:active::before { box-shadow: 3px 3px 0 var(--line-color); }
+        .submit-btn:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--line-color); }
 
-        /* 底部狀況列表 */
-        .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px dashed var(--line-color); padding-bottom: 15px; margin-bottom: 15px;}
-        .status-item { padding: 15px 10px; border-bottom: 2px dashed rgba(74, 63, 53, 0.3); font-size: 1.1rem; transform: rotate(0.5deg);}
-        .status-user-row { display: flex; align-items: center; font-weight: bold; margin-bottom: 8px;}
-        .status-avatar { font-size: 1.5rem; margin-right: 12px; transform: rotate(-5deg); display: inline-block;}
-        .item-note { background: white; padding: 3px 10px; border-radius: 20px; margin-left: 8px; font-size: 0.9rem; color: #555; border: 2px dashed var(--line-color); display: inline-block; transform: rotate(-3deg); box-shadow: 2px 2px 5px rgba(0,0,0,0.1);}
+        .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed var(--line-color); padding-bottom: 10px; margin-bottom: 10px;}
+        .status-item { padding: 10px 5px; border-bottom: 2px dashed rgba(74, 63, 53, 0.2); font-size: 0.95rem; }
+        .status-user-row { display: flex; align-items: center; font-weight: bold; margin-bottom: 5px;}
+        .status-avatar { font-size: 1.2rem; margin-right: 8px; }
+        .status-items-detail { padding-left: 30px; font-size: 0.9rem; opacity: 0.9; }
+        .item-note { background: white; padding: 1px 6px; border-radius: 10px; margin-left: 5px; font-size: 0.8rem; color: #555; border: 1px dashed #aaa; display: inline-block;}
     </style>
 </head>
 <body id="main-body">
@@ -242,27 +207,34 @@
     <header>
         <h1>✏️ 今天吃什麼？</h1>
         <div id="restaurant-name-display" class="restaurant-name"></div>
-        <div id="menu-time-info" class="menu-time-info"></div>
-        <div id="restaurant-phone" style="font-size: 0.9rem; margin-top: 5px;"></div>
+        <div id="restaurant-phone" style="font-size: 0.95rem; margin-bottom: 5px;"></div>
+        <div id="map-link-container"></div>
+        <div id="menu-time-info" class="menu-time-info" style="margin-top: 10px;"></div>
     </header>
 
-    <main id="menu-section" class="hand-drawn-box menu-section torn-paper-stack">
+    <section id="deadline-banner" class="hand-drawn-box deadline-banner">
+        <h2 class="deadline-title">⏰ 點餐截止時間</h2>
+        <div id="deadline-full-date" class="deadline-full-date">載入中...</div>
+        <div id="countdown-timer" class="countdown-timer">計算中...</div>
+    </section>
+
+    <main id="menu-section" class="hand-drawn-box menu-section">
         <h2>今日菜單 Menu</h2>
         <div id="menu-list-container">
             <p style="text-align: center;">正在載入菜單...</p>
         </div>
-        <hr style="border: none; border-top: 4px dashed var(--line-color); margin: 30px 0; opacity: 0.6; transform: rotate(1deg);">
-        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 1.3rem;">
+        <hr style="border: none; border-top: 3px dashed var(--line-color); margin: 25px 0; opacity: 0.5;">
+        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 1.2rem;">
             您的選擇總計： $<span id="personal-total">0</span>
         </div>
     </main>
 
-    <section id="input-section" class="hand-drawn-box input-section torn-paper-stack">
+    <section id="input-section" class="hand-drawn-box input-section">
         <div class="user-input-section">
             <h3 style="margin-top: 0;">輪到你點餐了：</h3>
             <input type="text" id="username-input" placeholder="請輸入你的名字 (例如：小陳)">
             
-            <p style="text-align: center; margin: 20px 0 15px 0; font-weight: bold; font-size: 1.1rem;">選擇一個頭像貼紙：</p>
+            <p style="text-align: center; margin: 15px 0 10px 0; font-weight: bold; font-size: 1.1rem;">選擇一個頭像貼紙：</p>
             <div class="avatar-selector" id="avatar-selector">
                 <div class="avatar-option" onclick="selectAvatar(this, '🐻')">🐻</div>
                 <div class="avatar-option" onclick="selectAvatar(this, '🐰')">🐰</div>
@@ -278,7 +250,7 @@
         </div>
     </section>
 
-    <section class="hand-drawn-box status-section torn-paper-stack">
+    <section class="hand-drawn-box status-section">
         <div class="status-header">
             <h2>點餐狀況 (本場次)</h2>
             <span style="font-size: 0.9rem;">(<span id="total-people-count">0</span> 人已點)</span>
@@ -318,15 +290,23 @@
         const personalTotalDisplay = document.getElementById('personal-total');
         const liveStatusList = document.getElementById('live-status-list');
         const totalPeopleCountSpan = document.getElementById('total-people-count');
+        // v9.0 新增 DOM
+        const mapLinkContainer = document.getElementById('map-link-container');
+        const deadlineBanner = document.getElementById('deadline-banner');
+        const deadlineFullDateDisplay = document.getElementById('deadline-full-date');
+        const countdownTimerDisplay = document.getElementById('countdown-timer');
 
         let selectedAvatarChar = null;
         let currentSelectionsMap = new Map();
         let currentSessionId = null;
         let unsubscribeOrders = null;
         let isManualClosed = false;
-        let deadlineTimeString = null;
+        // v9.0 修改：改用 deadlineDate 物件
+        let deadlineDate = null;
         let checkTimeInterval = null;
+        let countdownInterval = null; // v9.0: 倒數計時器
         let priceChangeMap = new Map(); 
+        let globalItemIndex = 0;
 
         // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
@@ -335,23 +315,43 @@
                 restaurantNameDisplay.textContent = data.restaurantName || '今日餐廳';
                 restaurantPhoneDisplay.textContent = data.restaurantPhone ? `📞 電話: ${data.restaurantPhone}` : '';
                 
+                // v9.0: 渲染地圖連結按鈕
+                if (data.restaurantMapUrl) {
+                    mapLinkContainer.innerHTML = `<a href="${data.restaurantMapUrl}" target="_blank" class="map-link-btn">🗺️ 去 Google Maps 看照片</a>`;
+                } else {
+                    mapLinkContainer.innerHTML = '';
+                }
+
                 let timeInfoHtml = '';
                 if (data.updatedAt) {
                     const updateTime = new Date(data.updatedAt.seconds * 1000).toLocaleString('zh-TW', {hour: '2-digit', minute:'2-digit'});
-                    timeInfoHtml += `菜單更新於: ${updateTime} `;
-                }
-                if (data.deadlineTime) {
-                    deadlineTimeString = data.deadlineTime;
-                    timeInfoHtml += `| <span class="deadline-highlight">今日截止: ${deadlineTimeString}</span>`;
-                } else {
-                    deadlineTimeString = null;
+                    timeInfoHtml += `菜單更新於: ${updateTime}`;
                 }
                 menuTimeInfoDisplay.innerHTML = timeInfoHtml;
 
+                // v9.0 修改：處理 Timestamp 格式的截止時間
+                if (data.deadlineTimestamp) {
+                    deadlineDate = data.deadlineTimestamp.toDate();
+                    // 顯示完整日期時間
+                    deadlineFullDateDisplay.textContent = deadlineDate.toLocaleString('zh-TW', {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false});
+                    deadlineBanner.style.display = 'block';
+                } else {
+                    deadlineDate = null;
+                    deadlineFullDateDisplay.textContent = '(未設定)';
+                    deadlineBanner.style.display = 'none';
+                }
+
                 isManualClosed = data.isOrderClosed === true;
+                
+                // v9.0: 啟動倒數計時與狀態檢查
+                startCountdown();
                 checkFormLockState();
+                
+                // 確保只會有一個 interval 在跑
                 if (checkTimeInterval) clearInterval(checkTimeInterval);
-                checkTimeInterval = setInterval(checkFormLockState, 60000);
+                // 每 30 秒檢查一次是否需要鎖定 (作為倒數計時的備援)
+                checkTimeInterval = setInterval(checkFormLockState, 30000);
+
 
                 processPriceChanges(data.comparisonSummary);
                 renderMenu(data);
@@ -362,9 +362,52 @@
                 }
             } else {
                 menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
+                deadlineBanner.style.display = 'none';
+                mapLinkContainer.innerHTML = '';
                 if (checkTimeInterval) clearInterval(checkTimeInterval);
+                if (countdownInterval) clearInterval(countdownInterval);
             }
         });
+
+        // v9.0 新增：倒數計時功能
+        function startCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            if (!deadlineDate) {
+                countdownTimerDisplay.textContent = '---';
+                return;
+            }
+
+            const updateTimer = () => {
+                const now = new Date();
+                const diff = deadlineDate - now;
+
+                if (diff <= 0) {
+                    // 時間到
+                    countdownTimerDisplay.textContent = '⛔ 已截止';
+                    countdownTimerDisplay.classList.add('countdown-ended');
+                    clearInterval(countdownInterval);
+                    checkFormLockState(); // 立即觸發鎖定
+                } else {
+                    // 計算剩餘時間
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    
+                    // 補零
+                    const hStr = hours.toString().padStart(2, '0');
+                    const mStr = minutes.toString().padStart(2, '0');
+                    const sStr = seconds.toString().padStart(2, '0');
+
+                    countdownTimerDisplay.textContent = `剩餘 ${hStr}小時 ${mStr}分 ${sStr}秒`;
+                    countdownTimerDisplay.classList.remove('countdown-ended');
+                }
+            };
+
+            updateTimer(); // 立即執行一次
+            countdownInterval = setInterval(updateTimer, 1000); // 每秒更新
+        }
+
 
         function processPriceChanges(summary) {
             priceChangeMap.clear();
@@ -376,13 +419,11 @@
             }
         }
 
+        // v9.0 修改：使用新的 deadlineDate 物件判斷
         function checkFormLockState() {
             let isTimeUp = false;
-            if (deadlineTimeString) {
+            if (deadlineDate) {
                 const now = new Date();
-                const [deadlineHour, deadlineMinute] = deadlineTimeString.split(':').map(Number);
-                const deadlineDate = new Date();
-                deadlineDate.setHours(deadlineHour, deadlineMinute, 0, 0);
                 if (now >= deadlineDate) isTimeUp = true;
             }
             const shouldLock = isManualClosed || isTimeUp;
@@ -404,12 +445,11 @@
             }
         }
 
-        // 根據菜名獲取對應的手繪 Emoji 圖示
         function getIconForDish(dishName) {
             const keywordMap = [
                 { keywords: ['雞', 'G', '腿', '排', '翅'], icon: '🍗' },
                 { keywords: ['牛', '牛排', '牛肉'], icon: '🥩' },
-                { keywords: ['豬', '排骨', '肉絲', '培根', '叉燒', '控肉', '魯肉', '香腸'], icon: '🐷' },
+                { keywords: ['豬', '排骨', '肉絲', '培根', '叉燒', '控肉', '魯肉', '香腸', '肉'], icon: '🐷' },
                 { keywords: ['魚', '鰻', '鯖', '鮭', '海鮮'], icon: '🐟' },
                 { keywords: ['蝦', '蝦仁', '炸蝦', '捲'], icon: '🍤' },
                 { keywords: ['麵', '米粉', '冬粉', '拉麵', '烏龍', '意麵'], icon: '🍜' },
@@ -427,7 +467,7 @@
             for (const entry of keywordMap) {
                 if (entry.keywords.some(keyword => dishName.includes(keyword))) return entry.icon;
             }
-            return '🍽️'; // 預設圖示
+            return '🍽️';
         }
 
         // renderMenu
@@ -435,6 +475,7 @@
             menuContainer.innerHTML = '';
             currentSelectionsMap.clear();
             updatePersonalSummary();
+            globalItemIndex = 0;
 
             if (data.menuCategories && Array.isArray(data.menuCategories)) {
                 data.menuCategories.forEach(category => {
@@ -444,7 +485,7 @@
                     menuContainer.appendChild(titleEl);
 
                     const listEl = document.createElement('div');
-                    listEl.classList.add('menu-list-vertical');
+                    listEl.classList.add('menu-grid');
                     category.items.forEach(item => {
                         listEl.appendChild(createMenuItemElement(item));
                     });
@@ -452,7 +493,7 @@
                 });
             } else if (data.menuItems && Array.isArray(data.menuItems)) {
                 const listEl = document.createElement('div');
-                listEl.classList.add('menu-list-vertical');
+                listEl.classList.add('menu-grid');
                 data.menuItems.forEach(item => {
                     listEl.appendChild(createMenuItemElement(item));
                 });
@@ -460,20 +501,43 @@
             } else {
                  menuContainer.innerHTML = '<p>菜單資料格式錯誤或為空。</p>';
             }
+
+            setupScrollAnimations();
         }
+
+        function setupScrollAnimations() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('show');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            const menuItems = document.querySelectorAll('.menu-item-checkbox');
+            menuItems.forEach(item => {
+                observer.observe(item);
+            });
+        }
+
 
         // 建立菜單項目元素
         function createMenuItemElement(item) {
             const el = document.createElement('div');
             el.classList.add('menu-item-checkbox');
 
+            // v8.1: 將延遲時間減半至 0.025s，加快波浪速度
+            el.style.transitionDelay = `${globalItemIndex * 0.025}s`;
+            globalItemIndex++;
+
             let priceNoteHtml = '';
             if (priceChangeMap.has(item.name)) {
                 const diff = priceChangeMap.get(item.name);
                 if (diff > 0) {
-                    priceNoteHtml = `<span class="price-note-up">(漲${diff}元)</span>`;
+                    priceNoteHtml = `<span class="price-note-up">(漲${diff})</span>`;
                 } else if (diff < 0) {
-                    priceNoteHtml = `<span class="price-note-down">(降${Math.abs(diff)}元)</span>`;
+                    priceNoteHtml = `<span class="price-note-down">(降${Math.abs(diff)})</span>`;
                 }
             }
 
@@ -482,16 +546,21 @@
             el.innerHTML = `
                 <div class="menu-item-header">
                     <div class="food-icon-wrapper">${dishIcon}</div>
+                    <div class="food-info">
+                        <span>${item.name}</span>
+                        <div>
+                            <b>$${item.price}</b>${priceNoteHtml}
+                        </div>
+                    </div>
                     <div class="checkbox-square"></div>
-                    <div class="food-info">${item.name} <b>$${item.price}</b>${priceNoteHtml}</div>
                 </div>
                 <div class="item-details-container">
-                    <input type="text" class="note-input" placeholder="備註 (例如: 加辣, 飯少)">
-                    <div class="quantity-controls">
-                        數量: <button class="qty-btn minus">-</button>
-                        <span class="qty-display">1</span>
+                    <div class="quantity-controls" style="margin-bottom: 10px;">
+                        <button class="qty-btn minus">-</button>
+                        <span>數量: <span class="qty-display">1</span></span>
                         <button class="qty-btn plus">+</button>
                     </div>
+                    <input type="text" class="note-input" placeholder="備註 (例如: 加辣)">
                 </div>
             `;
             
