@@ -1,4 +1,4 @@
-// main.js - 前台主邏輯 (v11.0 浮動購物車版)
+// main.js - 前台主邏輯 (v12.0 個人化與優化提示)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, collection, addDoc, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -14,15 +14,12 @@ const menuTimeInfoDisplay = document.getElementById('menu-time-info');
 const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
 const usernameInput = document.getElementById('username-input');
 const submitBtn = document.getElementById('submit-btn');
-// v11.0 移除 personalTotalDisplay
 const liveStatusList = document.getElementById('live-status-list');
 const totalPeopleCountSpan = document.getElementById('total-people-count');
 const mapLinkContainer = document.getElementById('map-link-container');
 const deadlineBanner = document.getElementById('deadline-banner');
 const deadlineFullDateDisplay = document.getElementById('deadline-full-date');
 const countdownTimerDisplay = document.getElementById('countdown-timer');
-
-// v11.0 新增購物車相關 DOM
 const cartFab = document.getElementById('cart-fab');
 const cartCountBadge = document.getElementById('cart-count-badge');
 const cartPanel = document.getElementById('cart-panel');
@@ -31,12 +28,11 @@ const cartItemsList = document.getElementById('cart-items-list');
 const cartTotalPriceSpan = document.getElementById('cart-total-price');
 const cartConfirmBtn = document.getElementById('cart-confirm-btn');
 const cartOverlay = document.getElementById('cart-overlay');
-
+// v12.0 新增
+const toastContainer = document.getElementById('toast-container');
 
 // --- 狀態變數 ---
 let selectedAvatarChar = null;
-// v11.0 修改: cartItems 改為儲存完整的商品物件陣列，不再是 Map
-// 格式: [{ name, price, quantity, note, icon }, ...]
 let cartItems = []; 
 let currentSessionId = null;
 let unsubscribeOrders = null;
@@ -47,7 +43,57 @@ let countdownInterval = null;
 let priceChangeMap = new Map(); 
 let globalItemIndex = 0;
 
-// --- A. 監聽菜單資訊與狀態 (維持不變) ---
+// --- v12.0 新增：Toast 提示訊息函數 ---
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.classList.add('toast', type);
+    
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    toastContainer.appendChild(toast);
+
+    // 3秒後自動消失
+    setTimeout(() => {
+        toast.classList.add('hide');
+        // 動畫結束後從 DOM 移除
+        toast.addEventListener('animationend', () => {
+            toast.remove();
+        });
+    }, 3000);
+}
+
+// --- v12.0 新增：LocalStorage 用戶設定存取 ---
+function loadUserSettings() {
+    const savedName = localStorage.getItem('lunchOrder_username');
+    const savedAvatar = localStorage.getItem('lunchOrder_avatar');
+    
+    if (savedName) {
+        usernameInput.value = savedName;
+    }
+    if (savedAvatar) {
+        const avatarEl = Array.from(document.querySelectorAll('.avatar-option'))
+            .find(el => el.textContent.includes(savedAvatar));
+        if (avatarEl) {
+            selectAvatar(avatarEl, savedAvatar);
+        }
+    }
+    checkSubmitButtonState(); // 載入後檢查按鈕狀態
+}
+
+function saveUserSettings(name, avatar) {
+    localStorage.setItem('lunchOrder_username', name);
+    localStorage.setItem('lunchOrder_avatar', avatar);
+}
+
+
+// --- A. 監聽菜單資訊與狀態 ---
 onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
     if (docSnap.exists()) {
         const data = docSnap.data();
@@ -93,9 +139,11 @@ onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
             setupOrderListener(currentSessionId);
         }
         
-        // v11.0: 菜單更新時清空購物車
         cartItems = [];
         updateCartUI();
+
+        // v12.0: 菜單載入完成後，嘗試讀取使用者設定
+        loadUserSettings();
 
     } else {
         menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
@@ -156,10 +204,10 @@ function updateFormState(isLocked, isTimeUp) {
         else submitBtn.textContent = '⛔ 已手動結單，停止點餐';
         submitBtn.disabled = true;
         usernameInput.disabled = true;
-        closeCart(); // 結單時關閉購物車
+        closeCart();
     } else {
         mainBody.classList.remove('order-closed');
-        checkSubmitButtonState(); // 按鈕狀態由購物車決定
+        checkSubmitButtonState();
         usernameInput.disabled = false;
     }
 }
@@ -225,9 +273,7 @@ function setupScrollAnimations() {
     document.querySelectorAll('.menu-item-checkbox').forEach(item => observer.observe(item));
 }
 
-// --- v11.0 核心：購物車邏輯 ---
-
-// 1. 建立菜單項目 (點擊加入購物車)
+// --- 購物車邏輯 (維持 v11) ---
 function createMenuItemElement(item) {
     const el = document.createElement('div');
     el.classList.add('menu-item-checkbox');
@@ -248,21 +294,18 @@ function createMenuItemElement(item) {
                 <span>${item.name}</span>
                 <div><b>$${item.price}</b>${priceNoteHtml}</div>
             </div>
-            </div>
+        </div>
     `;
     
-    // v11.0 修改點擊事件：加入購物車並打開面板
     el.addEventListener('click', () => {
         if (mainBody.classList.contains('order-closed')) return;
         addToCart(item, dishIcon);
-        openCart(); // 加入後自動打開購物車讓使用者確認
+        openCart();
     });
     return el;
 }
 
-// 2. 加入購物車
 function addToCart(item, icon) {
-    // 檢查是否已存在 (這裡簡單比對名稱，若要支援同品項不同備註需更複雜的邏輯)
     const existingItem = cartItems.find(i => i.name === item.name);
     if (existingItem) {
         existingItem.quantity++;
@@ -276,21 +319,17 @@ function addToCart(item, icon) {
         });
     }
     updateCartUI();
-    updateMenuSelectionState(); // 更新菜單上的選中狀態
+    updateMenuSelectionState();
 }
 
-// 3. 更新購物車介面 (Badge, Total, List)
 function updateCartUI() {
-    // 更新角標數量
     const totalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     cartCountBadge.textContent = totalCount;
     cartCountBadge.setAttribute('data-count', totalCount);
 
-    // 更新總金額
     const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     cartTotalPriceSpan.textContent = totalPrice;
 
-    // 重新渲染購物車清單
     cartItemsList.innerHTML = '';
     if (cartItems.length === 0) {
         cartItemsList.innerHTML = '<p class="empty-cart-msg">您還沒有選擇任何餐點喔！</p>';
@@ -313,20 +352,16 @@ function updateCartUI() {
                 </div>
                 <input type="text" class="cart-item-note-input" placeholder="備註 (例如: 加辣)" value="${item.note}">
             `;
-
-            // 綁定事件
             itemEl.querySelector('.minus').addEventListener('click', () => updateCartItemQuantity(index, -1));
             itemEl.querySelector('.plus').addEventListener('click', () => updateCartItemQuantity(index, 1));
             itemEl.querySelector('.cart-item-remove').addEventListener('click', () => removeFromCart(index));
             itemEl.querySelector('.cart-item-note-input').addEventListener('input', (e) => { item.note = e.target.value.trim(); });
-            
             cartItemsList.appendChild(itemEl);
         });
     }
     checkSubmitButtonState();
 }
 
-// 4. 更新購物車商品數量
 function updateCartItemQuantity(index, delta) {
     const item = cartItems[index];
     item.quantity += delta;
@@ -337,19 +372,16 @@ function updateCartItemQuantity(index, delta) {
     }
 }
 
-// 5. 從購物車移除
 function removeFromCart(index) {
     cartItems.splice(index, 1);
     updateCartUI();
     updateMenuSelectionState();
 }
 
-// 6. 更新菜單卡片的選中狀態 (視覺回饋)
 function updateMenuSelectionState() {
     const menuCards = document.querySelectorAll('.menu-item-checkbox');
     menuCards.forEach(card => {
         const itemName = card.querySelector('.food-info span').textContent;
-        // 檢查這個品項是否在購物車裡
         const isInCart = cartItems.some(item => item.name === itemName);
         if (isInCart) {
             card.classList.add('selected');
@@ -359,26 +391,24 @@ function updateMenuSelectionState() {
     });
 }
 
-// 7. 開啟/關閉購物車面板
 function openCart() {
     cartPanel.classList.add('open');
     cartOverlay.classList.add('show');
-    document.body.style.overflow = 'hidden'; // 防止背景滾動
+    document.body.style.overflow = 'hidden';
 }
 function closeCart() {
     cartPanel.classList.remove('open');
     cartOverlay.classList.remove('show');
-    document.body.style.overflow = ''; // 恢復背景滾動
+    document.body.style.overflow = '';
 }
 
-// 綁定購物車開關事件
 cartFab.addEventListener('click', openCart);
 closeCartBtn.addEventListener('click', closeCart);
 cartOverlay.addEventListener('click', closeCart);
-cartConfirmBtn.addEventListener('click', closeCart); // 確認後關閉
+cartConfirmBtn.addEventListener('click', closeCart);
 
 
-// --- B. 用戶輸入互動 (維持 v10) ---
+// --- B. 用戶輸入互動 ---
 window.selectAvatar = (element, char) => {
     if (mainBody.classList.contains('order-closed')) return;
     document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
@@ -387,7 +417,6 @@ window.selectAvatar = (element, char) => {
     checkSubmitButtonState();
 }
 
-// v11.0 修改：按鈕狀態檢查邏輯
 function checkSubmitButtonState() {
     if (mainBody.classList.contains('order-closed')) {
         submitBtn.disabled = true;
@@ -411,16 +440,16 @@ function checkSubmitButtonState() {
 }
 usernameInput.addEventListener('input', checkSubmitButtonState);
 
-// --- C. 送出訂單 (v11.0 修改：從 cartItems 讀取資料) ---
+// --- C. 送出訂單 (v12.0 修改：使用 showToast 和 儲存設定) ---
 submitBtn.addEventListener('click', async () => {
     if (submitBtn.disabled || mainBody.classList.contains('order-closed')) return;
-    if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
+    // v12.0: 改用 toast
+    if (!currentSessionId) { showToast('系統錯誤：無場次 ID', 'error'); return; }
     
     const userName = usernameInput.value.trim();
     submitBtn.textContent = '正在送出...';
     submitBtn.disabled = true;
 
-    // v11.0: 直接使用 cartItems 陣列
     const itemsToOrder = cartItems.map(item => ({
         name: item.name,
         price: item.price,
@@ -439,19 +468,25 @@ submitBtn.addEventListener('click', async () => {
             paidAmount: 0,
             orderTime: serverTimestamp()
         });
-        alert(`✅ ${userName}，訂單送出成功！`);
-        // 送出成功後清空購物車與輸入
+        
+        // v12.0: 成功後儲存使用者設定到 localStorage
+        saveUserSettings(userName, selectedAvatarChar);
+
+        // v12.0: 改用 toast 顯示成功訊息
+        showToast(`✅ ${userName}，訂單送出成功！`, 'success');
+        
+        // 清空購物車，但不清空名字和頭像 (因為已經記住了)
         cartItems = [];
         updateCartUI();
         updateMenuSelectionState();
-        usernameInput.value = '';
-        document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
-        selectedAvatarChar = null;
         checkSubmitButtonState();
-        // 不用 reload，體驗更好
+        // 關閉購物車面板 (如果開著)
+        closeCart();
+
     } catch (e) {
-        alert('❌ 訂購失敗：' + e.message);
-        checkSubmitButtonState(); // 恢復按鈕狀態
+        // v12.0: 改用 toast 顯示錯誤訊息
+        showToast('❌ 訂購失敗：' + e.message, 'error');
+        checkSubmitButtonState();
     }
 });
 
