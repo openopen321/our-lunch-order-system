@@ -1,0 +1,44 @@
+/* style.css - 共用樣式表 (v10.0) */
+:root {
+    --bg-color: #FFFBE6; --line-color: #4A3F35;
+    --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
+    --danger-red: #d9534f; --success-green: #28a745;
+    --paper-shadow: rgba(0, 0, 0, 0.15);
+    --sticker-shadow: rgba(0, 0, 0, 0.25);
+    --sticker-shadow-deep: rgba(0, 0, 0, 0.35);
+}
+body {
+    font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
+    background-color: var(--bg-color);
+    background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
+    background-size: 20px 20px; color: var(--line-color);
+    margin: 0 auto; padding: 20px 15px; max-width: 500px;
+    padding-bottom: 120px; overflow-x: hidden;
+}
+h1, h2, h3 { font-weight: normal; text-align: center; margin: 10px 0; }
+header { text-align: center; margin-bottom: 20px; }
+
+/* 手繪風格盒子 Mixin */
+.hand-drawn-box, .admin-box {
+    background: white;
+    border-radius: 20px;
+    outline: 3px dashed var(--line-color); outline-offset: -5px;
+    border: 4px solid white;
+    box-shadow: 5px 5px 15px var(--paper-shadow);
+    padding: 20px; margin-bottom: 30px;
+    transform: rotate(-0.5deg);
+    transition: all 0.3s;
+}
+.input-section { background: var(--accent-blue) !important; transform: rotate(0.5deg); }
+.status-section { background: var(--accent-green) !important; transform: rotate(-0.3deg); }
+
+/* 通用按鈕樣式 */
+.btn {
+    font-family: inherit; cursor: pointer; font-weight: bold; border: none;
+    transition: all 0.1s;
+}
+.btn:active { transform: translate(2px, 2px); }
+
+/* 價格漲跌註記 */
+.price-note-up { color: var(--danger-red); font-size: 0.85rem; margin-left: 3px; font-weight: bold;}
+.price-note-down { color: var(--success-green); font-size: 0.85rem; margin-left: 3px; font-weight: bold;}
