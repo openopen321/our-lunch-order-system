@@ -3,74 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 v13.0 (儀表板升級版)</title>
+    <title>🔧 管理後台 v9.1 (穩定回退版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
     <style>
-        /* 後台專用樣式 (非共用部分) */
-        body { max-width: 1000px; } /* 稍微加寬以容納新佈局 */
-        
-        /* 標題與狀態 */
-        #admin-restaurant-name { font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg); }
+        :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #d9534f; --success-green: #c7edb6; --warning-orange: #ffeeba; --paper-shadow: rgba(0, 0, 0, 0.15); }
+        body {
+            font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
+            background-size: 20px 20px; color: var(--line-color);
+            padding: 20px; max-width: 950px; margin: auto;
+        }
+        h1, h2 { text-align: center; margin-top: 0; }
+        header { text-align: center; margin-bottom: 20px; }
         .session-info { font-size: 0.9rem; color: #666; margin-top: 5px;}
-        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
-        .status-open { background: var(--success-green); color: darkgreen; border: 2px solid darkgreen;}
-        .status-closed { background: var(--danger-red); color: darkred; border: 2px solid darkred;}
-
-        /* v13.0 新增：儀表板數據圖卡 */
-        .dashboard-stats {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px; margin-bottom: 30px;
-        }
-        .stat-card {
-            background: white; padding: 20px; border-radius: 15px;
-            border: 3px solid var(--line-color); box-shadow: 5px 5px 0 var(--line-color);
-            text-align: center; transition: transform 0.2s;
-        }
-        .stat-card:hover { transform: translateY(-5px); }
-        .stat-card.blue { background: var(--accent-blue); }
-        .stat-card.green { background: var(--accent-green); }
-        .stat-card.pink { background: var(--accent-pink); }
-        .stat-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: #555; }
-        .stat-value { font-size: 2rem; font-weight: bold; }
-        .stat-sub { font-size: 0.9rem; color: #666; margin-top: 5px;}
-        .debt-highlight { color: var(--danger-red); }
-
-        /* v13.0 新增：儀表板雙欄佈局 */
-        .dashboard-row {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
-            margin-bottom: 30px;
-        }
-        @media (max-width: 768px) { .dashboard-row { grid-template-columns: 1fr; } }
-
-        /* v13.0 新增：熱門餐點排行榜 (CSS 手繪長條圖) */
-        .top-items-list { list-style: none; padding: 0; }
-        .top-item { margin-bottom: 15px; }
-        .top-item-info { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; }
-        .bar-container {
-            height: 20px; background: #eee; border-radius: 10px;
-            border: 2px solid var(--line-color); overflow: hidden;
-        }
-        .bar-fill {
-            height: 100%; background: var(--accent-yellow); border-radius: 8px;
-            border-right: 2px solid var(--line-color);
-            transition: width 1s cubic-bezier(0.25, 0.8, 0.25, 1); width: 0%; /* 初始寬度為 0，由 JS 動態設定 */
-        }
-        .bar-fill.rank-1 { background: var(--accent-pink); }
-        .bar-fill.rank-2 { background: var(--accent-blue); }
-        .bar-fill.rank-3 { background: var(--accent-green); }
-
-        /* 結單控制區 */
-        .header-actions { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;}
-        .close-order-section { flex-grow: 1; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 15px; text-align: center; transform: rotate(1deg);}
-        .btn-close-order { background: #ff4d4d; color: white; font-size: 1.2rem; padding: 10px 30px; border: 3px solid var(--line-color); width: 100%; max-width: 400px; border-radius: 10px;}
         
-        /* 按鈕與表格通用 */
-        .btn { background: var(--accent-yellow); border: 2px solid var(--line-color); padding: 8px 15px; cursor: pointer; font-weight: bold; box-shadow: 2px 2px 0 var(--line-color); border-radius: 5px; font-family: inherit;}
-        .btn:active { transform: translate(1px, 1px); box-shadow: none; }
-        .btn-new-session { background: var(--accent-pink); font-size: 1.1rem; padding: 10px 20px; width: 100%; border-radius: 10px;}
-        .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
-        .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
+        .admin-box {
+            background: white;
+            border-radius: 20px;
+            outline: 3px dashed var(--line-color); outline-offset: -5px;
+            border: 4px solid white;
+            box-shadow: 5px 5px 15px var(--paper-shadow);
+            padding: 20px; margin-bottom: 30px;
+            transform: rotate(-0.5deg);
+        }
         
         .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem;}
         .order-table th, .order-table td { border: 2px solid var(--line-color); padding: 8px; text-align: center; vertical-align: middle; background: white;}
@@ -83,13 +39,26 @@
         .status-change { color: blue; font-weight: bold; background: #e6f0ff;}
         .row-fully-paid td { background-color: #e6ffe6 !important; opacity: 0.8; }
 
-        /* 統整與歷史區樣式 */
+        .btn { background: var(--accent-yellow); border: 2px solid var(--line-color); padding: 8px 15px; cursor: pointer; font-weight: bold; box-shadow: 2px 2px 0 var(--line-color); border-radius: 5px; font-family: inherit;}
+        .btn:active { transform: translate(1px, 1px); box-shadow: none; }
+        .btn-new-session { background: var(--accent-pink); font-size: 1.1rem; padding: 10px 20px; width: 100%; border-radius: 10px;}
+        .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
+        .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
+
+        .header-actions { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;}
+        .close-order-section { flex-grow: 1; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 15px; text-align: center; transform: rotate(1deg);}
+        .btn-close-order { background: #ff4d4d; color: white; font-size: 1.2rem; padding: 10px 30px; border: 3px solid var(--line-color); width: 100%; max-width: 400px; border-radius: 10px;}
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
+        .status-open { background: var(--success-green); color: darkgreen; border: 2px solid darkgreen;}
+        .status-closed { background: var(--danger-red); color: darkred; border: 2px solid darkred;}
+
         .summary-header-info { font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.2);}
         .summary-list { list-style: disc; padding-left: 40px; }
         .summary-list li { margin-bottom: 8px; font-size: 1.1rem; }
         .summary-notes { font-size: 0.9rem; color: #666; display: block; margin-top: 2px;}
         .history-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto;}
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd; background: white;}
+        
         textarea, input[type="text"], input[type="time"] { 
             width: 100%; border: 2px solid var(--line-color); padding: 8px; font-family: inherit; box-sizing: border-box;
             background: white; border-radius: 5px; font-size: 1rem; margin-bottom: 10px;
@@ -103,11 +72,9 @@
     </style>
 </head>
 <body>
-    <div id="toast-container" class="toast-container"></div>
-
     <header>
-        <h1>🔧 管理後台 v13.0 (儀表板升級版)</h1>
-        <div id="admin-restaurant-name"></div>
+        <h1>🔧 管理後台 v9.1 (穩定回退版)</h1>
+        <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg);"></div>
         <div class="session-info">
             <span id="current-session-id">載入中...</span>
             <span id="status-badge" class="status-badge" style="display: none;"></span>
@@ -126,43 +93,16 @@
         </div>
     </div>
 
-    <section class="dashboard-stats">
-        <div class="stat-card blue" style="transform: rotate(-1deg);">
-            <div class="stat-title">📝 今日訂單數</div>
-            <div class="stat-value" id="stat-order-count">0</div>
-            <div class="stat-sub">筆訂單</div>
-        </div>
-        <div class="stat-card green" style="transform: rotate(1deg);">
-            <div class="stat-title">💰 總銷售額</div>
-            <div class="stat-value">$<span id="stat-total-sales">0</span></div>
-            <div class="stat-sub">本場次小計</div>
-        </div>
-        <div class="stat-card pink" style="transform: rotate(-0.5deg);">
-            <div class="stat-title">⚠️ 未收帳款</div>
-            <div class="stat-value debt-highlight">$<span id="stat-total-debt">0</span></div>
-            <div class="stat-sub">需要追蹤</div>
-        </div>
+    <section class="admin-box" style="background: var(--accent-pink); transform: rotate(0.5deg);">
+        <h2>☎️ 打電話用：訂單統整區 (當前場次)</h2>
+        <div id="summary-header" class="summary-header-info">讀取中...</div>
+        <ul id="aggregated-order-list" class="summary-list">
+            <li>計算中...</li>
+        </ul>
     </section>
 
-    <div class="dashboard-row">
-        <section class="admin-box" style="background: #f4f4f4; transform: rotate(-0.5deg); margin-bottom: 0;">
-            <h2>🏆 熱門餐點 Top 5</h2>
-            <ul id="top-items-list" class="top-items-list">
-                <p style="text-align: center; color: #888;">統計中...</p>
-            </ul>
-        </section>
-
-        <section class="admin-box" style="background: var(--accent-pink); transform: rotate(0.5deg); margin-bottom: 0;">
-            <h2>☎️ 打電話用：統整清單</h2>
-            <div id="summary-header" class="summary-header-info">讀取中...</div>
-            <ul id="aggregated-order-list" class="summary-list">
-                <li>計算中...</li>
-            </ul>
-        </section>
-    </div>
-
     <section class="admin-box">
-        <h2>💰 訂單明細與管理</h2>
+        <h2>💰 訂單明細與管理 (當前場次)</h2>
         <table class="order-table">
             <thead>
                 <tr>
@@ -178,7 +118,7 @@
                 </tbody>
             <tfoot>
                 <tr style="font-weight: bold; background: #f0f0f0;">
-                    <td colspan="2" style="text-align: right;">合計:</td>
+                    <td colspan="2" style="text-align: right;">當前場次合計:</td>
                     <td>$<span id="grand-total-due">0</span></td>
                     <td>$<span id="grand-total-paid">0</span></td>
                     <td colspan="2" style="color: red;">未收: $<span id="grand-total-debt">0</span></td>
@@ -197,22 +137,10 @@
     <section class="admin-box">
         <h2>📤 開啟新團購 & 發布菜單</h2>
         <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。系統會自動在背景比對變更。</p>
-        
         <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
         
-        <div id="tweaker-controls" style="margin-bottom: 15px; text-align: center;">
-            <button id="btn-parse-tweak" class="btn" style="background: var(--accent-blue); font-size: 1rem;">👀 解析並微調內容</button>
-        </div>
-
-        <div id="json-tweaker-container" class="tweaker-container" style="display: none;">
-            <div id="tweaker-items-list"></div>
-            <div class="tweaker-actions">
-                <button id="btn-cancel-tweak" class="btn btn-delete" style="font-size: 1rem;">取消</button>
-                <button id="btn-apply-tweak" class="btn" style="background: var(--success-green); font-size: 1.1rem;">✅ 確認修改並產生新的 JSON</button>
-            </div>
-        </div>
-        
         <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結，方便同事看照片">
+
         <div class="time-input-container">
             <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
             <input type="time" id="deadline-time-input" value="11:30">
@@ -221,6 +149,362 @@
         <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
     </section>
 
-    <script type="module" src="admin.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥🔥🔥 已自動填入您的 firebaseConfig 🔥🔥🔥
+        const firebaseConfig = {
+          apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
+          authDomain: "cute-lunch-order.firebaseapp.com",
+          projectId: "cute-lunch-order",
+          storageBucket: "cute-lunch-order.firebasestorage.app",
+          messagingSenderId: "62115069448",
+          appId: "1:62115069448:web:212231a6452f87a3d69bbd",
+          measurementId: "G-DWMWFSHQPX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // DOM
+        const adminRestaurantName = document.getElementById('admin-restaurant-name');
+        const currentSessionIdDisplay = document.getElementById('current-session-id');
+        const statusBadge = document.getElementById('status-badge');
+        const btnCloseOrder = document.getElementById('btn-close-order');
+        const summaryHeader = document.getElementById('summary-header');
+        const aggregatedListEl = document.getElementById('aggregated-order-list');
+        const orderTableBody = document.getElementById('order-table-body');
+        const grandTotalDueEl = document.getElementById('grand-total-due');
+        const grandTotalPaidEl = document.getElementById('grand-total-paid');
+        const grandTotalDebtEl = document.getElementById('grand-total-debt');
+        const adminJsonInput = document.getElementById('admin-json-input');
+        const publishBtn = document.getElementById('publish-btn');
+        const historyListEl = document.getElementById('history-list');
+        const deadlineTimeInput = document.getElementById('deadline-time-input');
+        const deadlineDisplay = document.getElementById('deadline-display');
+        const adminMapUrlInput = document.getElementById('admin-map-url');
+
+        let currentSessionId = null;
+        let unsubscribeOrders = null;
+        let currentMenuData = null;
+        let isOrderClosed = false;
+
+        // --- A. 監聽菜單資訊與狀態 ---
+        onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
+            if (docSnap.exists()) {
+                currentMenuData = docSnap.data();
+                adminRestaurantName.textContent = currentMenuData.restaurantName || '今日餐廳';
+                currentSessionId = currentMenuData.sessionId || 'unknown_session';
+                currentSessionIdDisplay.textContent = `場次 ID: ${currentSessionId}`;
+                
+                isOrderClosed = currentMenuData.isOrderClosed === true;
+                statusBadge.style.display = 'inline-block';
+                btnCloseOrder.disabled = false;
+
+                if (currentMenuData.deadlineTimestamp) {
+                    const deadlineDate = currentMenuData.deadlineTimestamp.toDate();
+                    deadlineDisplay.textContent = `(今日截止: ${deadlineDate.toLocaleString('zh-TW', {hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'})})`;
+                } else {
+                    deadlineDisplay.textContent = '(未設定截止時間)';
+                }
+
+                if (isOrderClosed) {
+                    statusBadge.textContent = '⛔ 已手動結單';
+                    statusBadge.className = 'status-badge status-closed';
+                    btnCloseOrder.textContent = '✅ 已結單 (點擊重新開放)';
+                    btnCloseOrder.style.background = '#ccc';
+                    btnCloseOrder.style.color = '#333';
+                } else {
+                    statusBadge.textContent = '🟢 手動開放中';
+                    statusBadge.className = 'status-badge status-open';
+                    btnCloseOrder.textContent = '🔴 鎖定結單 (停止點餐)';
+                    btnCloseOrder.style.background = '#ff4d4d';
+                    btnCloseOrder.style.color = 'white';
+                }
+                
+                let dateStr = '未知日期';
+                if (currentMenuData.updatedAt) {
+                    dateStr = new Date(currentMenuData.updatedAt.seconds * 1000).toLocaleString('zh-TW');
+                }
+                summaryHeader.innerHTML = `訂餐日期: ${dateStr}<br>餐廳電話: ${currentMenuData.restaurantPhone || '(無)'}`;
+                
+                if (currentMenuData.restaurantMapUrl) {
+                    adminMapUrlInput.value = currentMenuData.restaurantMapUrl;
+                } else {
+                    adminMapUrlInput.value = '';
+                }
+
+                setupOrderListener(currentSessionId);
+            } else {
+                adminRestaurantName.textContent = '尚未發布';
+                summaryHeader.textContent = '等待發布菜單...';
+                statusBadge.style.display = 'none';
+                btnCloseOrder.disabled = true;
+                deadlineDisplay.textContent = '';
+                adminMapUrlInput.value = '';
+            }
+        });
+
+        // --- 手動結單按鈕點擊事件 ---
+        btnCloseOrder.addEventListener('click', async () => {
+            if (!currentSessionId) return;
+            const newStatus = !isOrderClosed;
+            const confirmMsg = newStatus ? "確定要「手動結單」嗎？前台將無法再點餐。" : "確定要「重新開放」點餐嗎？";
+            if (confirm(confirmMsg)) {
+                try { await updateDoc(doc(db, "dailyData", "menu"), { isOrderClosed: newStatus }); } 
+                catch (e) { alert('操作失敗：' + e.message); }
+            }
+        });
+
+        // --- B. 發布新菜單 ---
+        publishBtn.addEventListener('click', async () => {
+            const jsonString = adminJsonInput.value.trim();
+            const deadlineTimeStr = deadlineTimeInput.value;
+            const mapUrl = adminMapUrlInput.value.trim();
+
+            if (!jsonString) { alert('請先貼上 JSON！'); return; }
+            if (!deadlineTimeStr) { alert('請設定截止時間！'); return; }
+
+            publishBtn.textContent = '正在處理比對與發布...';
+            publishBtn.disabled = true;
+            
+            const newSessionId = 'session_' + Date.now();
+            try {
+                const newMenuData = JSON.parse(jsonString);
+                const now = new Date();
+                const [hours, minutes] = deadlineTimeStr.split(':').map(Number);
+                const deadlineDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+                
+                const oldDocSnap = await getDoc(doc(db, "dailyData", "menu"));
+                const oldMenuData = oldDocSnap.exists() ? oldDocSnap.data() : null;
+                const comparisonSummary = generateComparisonSummary(oldMenuData, newMenuData);
+                
+                const dataToSave = {
+                    restaurantName: newMenuData.restaurantName || '未知餐廳',
+                    restaurantPhone: newMenuData.restaurantPhone || '',
+                    restaurantMapUrl: mapUrl,
+                    sessionId: newSessionId,
+                    isOrderClosed: false,
+                    deadlineTimestamp: Timestamp.fromDate(deadlineDate),
+                    updatedAt: serverTimestamp()
+                };
+                // 只有當 comparisonSummary 有值的時候，才把它加進去
+                if (comparisonSummary) {
+                    dataToSave.comparisonSummary = comparisonSummary;
+                }
+
+                if (newMenuData.menuCategories) dataToSave.menuCategories = newMenuData.menuCategories;
+                else if (newMenuData.menuItems) dataToSave.menuItems = newMenuData.menuItems;
+
+                await setDoc(doc(db, "dailyData", "menu"), dataToSave);
+
+                const historyData = {
+                    restaurantName: dataToSave.restaurantName,
+                    restaurantPhone: dataToSave.restaurantPhone,
+                    restaurantMapUrl: mapUrl,
+                    lastUsed: serverTimestamp(),
+                    orderCount: increment(1)
+                };
+                if (newMenuData.menuCategories) historyData.menuCategories = newMenuData.menuCategories;
+                else if (newMenuData.menuItems) historyData.menuItems = newMenuData.menuItems;
+
+                await setDoc(doc(db, 'restaurantHistory', dataToSave.restaurantName), historyData, { merge: true });
+
+                alert(`✅ 新場次開啟成功！截止時間：${deadlineDate.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`);
+                adminJsonInput.value = '';
+                adminMapUrlInput.value = '';
+            } catch (e) { 
+                alert('❌ 發布失敗：' + e.message); 
+            } finally {
+                publishBtn.textContent = '🚀 發布新菜單 (開啟新場次)';
+                publishBtn.disabled = false;
+            }
+        });
+
+        // 自動比對函數
+        function generateComparisonSummary(oldData, newData) {
+            if (!oldData || oldData.restaurantName !== newData.restaurantName) {
+                return null;
+            }
+            const oldMap = flattenMenu(oldData);
+            const newMap = flattenMenu(newData);
+            const summary = { newItems: [], changedItems: [], removedItems: [] };
+            let hasChanges = false;
+
+            newMap.forEach((price, name) => {
+                if (!oldMap.has(name)) {
+                    summary.newItems.push({ name, price });
+                    hasChanges = true;
+                } else if (oldMap.get(name) !== price) {
+                    summary.changedItems.push({ name, oldPrice: oldMap.get(name), newPrice: price });
+                    hasChanges = true;
+                }
+            });
+            oldMap.forEach((price, name) => {
+                if (!newMap.has(name)) {
+                    summary.removedItems.push({ name });
+                    hasChanges = true;
+                }
+            });
+            return hasChanges ? summary : null;
+        }
+
+        // 輔助函數：扁平化菜單
+        function flattenMenu(menuData) {
+            const itemsMap = new Map();
+            let itemsArray = [];
+            if (menuData.menuCategories) {
+                menuData.menuCategories.forEach(cat => { if (cat.items) itemsArray = itemsArray.concat(cat.items); });
+            } else if (menuData.menuItems) {
+                itemsArray = menuData.menuItems;
+            }
+            itemsArray.forEach(item => { itemsMap.set(item.name, item.price); });
+            return itemsMap;
+        }
+
+
+        // --- C. 監聽歷史紀錄 ---
+        const historyQ = query(collection(db, 'restaurantHistory'), orderBy('lastUsed', 'desc'));
+        onSnapshot(historyQ, (snapshot) => {
+            historyListEl.innerHTML = '';
+            if (snapshot.empty) { historyListEl.innerHTML = '<p>尚無歷史紀錄</p>'; return; }
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const li = document.createElement('li');
+                li.classList.add('history-item');
+                li.innerHTML = `
+                    <div class="history-info">
+                        <strong>${data.restaurantName}</strong> (點過 ${data.orderCount || 1} 次)<br>
+                        <span style="font-size: 0.9rem;">電話: ${data.restaurantPhone}</span>
+                    </div>
+                    <button class="btn btn-load">載入菜單</button>
+                `;
+                li.querySelector('.btn-load').addEventListener('click', () => {
+                    const jsonToLoad = {
+                        restaurantName: data.restaurantName,
+                        restaurantPhone: data.restaurantPhone,
+                    };
+                    if (data.menuCategories) jsonToLoad.menuCategories = data.menuCategories;
+                    else if (data.menuItems) jsonToLoad.menuItems = data.menuItems;
+
+                    adminJsonInput.value = JSON.stringify(jsonToLoad, null, 2);
+                    adminMapUrlInput.value = data.restaurantMapUrl || '';
+                    
+                    adminJsonInput.scrollIntoView({ behavior: 'smooth' });
+                });
+                historyListEl.appendChild(li);
+            });
+        });
+
+        // --- D. 訂單監聽與渲染 ---
+        function setupOrderListener(sessionId) {
+            if (unsubscribeOrders) unsubscribeOrders();
+            const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
+            unsubscribeOrders = onSnapshot(q, (querySnapshot) => {
+                renderOrders(querySnapshot);
+            });
+        }
+
+        function renderOrders(querySnapshot) {
+            orderTableBody.innerHTML = '';
+            let currentOrdersData = [];
+            let stats = { totalDue: 0, totalPaid: 0 };
+
+            if (querySnapshot.empty) {
+                orderTableBody.innerHTML = '<tr><td colspan="6">當前場次尚無訂單</td></tr>';
+                aggregatedListEl.innerHTML = '<li>尚未有訂單</li>';
+                updateFooterStats(0, 0);
+                return;
+            }
+
+            querySnapshot.forEach((docSnap) => {
+                const order = docSnap.data();
+                if (!order.items || !Array.isArray(order.items)) return;
+                order.id = docSnap.id;
+                currentOrdersData.push(order);
+
+                stats.totalDue += order.totalCost;
+                const paidAmount = Number(order.paidAmount) || 0;
+                stats.totalPaid += paidAmount;
+                const remaining = order.totalCost - paidAmount;
+                
+                const isFullyPaid = remaining === 0 && order.totalCost > 0;
+                let statusHtml = '<span class="status-paid">已付清</span>';
+                if (remaining > 0) statusHtml = `<span class="status-debt">未付: $${remaining}</span>`;
+                else if (remaining < 0) statusHtml = `<span class="status-change">需找回: $${Math.abs(remaining)}</span>`;
+
+                const tr = document.createElement('tr');
+                if (isFullyPaid) tr.classList.add('row-fully-paid');
+
+                const itemsDetails = order.items.map(item => {
+                    const qtyStr = item.quantity > 1 ? ` <b>x${item.quantity}</b>` : '';
+                    const noteStr = item.note ? ` <span class="item-note">(${item.note})</span>` : '';
+            return `${item.name}${qtyStr}${noteStr}`;
+        }).join('<br>');
+
+        tr.innerHTML = `
+            <td>${order.userAvatar} ${order.userName}</td>
+            <td class="text-left">${itemsDetails}</td>
+            <td>$${order.totalCost}</td>
+            <td><input type="number" class="paid-input" value="${paidAmount}" min="0" onchange="updatePaidAmount('${order.id}', this.value)"></td>
+            <td>${statusHtml}</td>
+            <td><button class="btn btn-delete" onclick="deleteOrder('${order.id}', '${order.userName}')">❌ 刪除</button></td>
+        `;
+        orderTableBody.appendChild(tr);
+            });
+            updateFooterStats(stats.totalDue, stats.totalPaid);
+            calculateAggregation(currentOrdersData);
+        }
+
+        function updateFooterStats(due, paid) {
+            grandTotalDueEl.textContent = due;
+            grandTotalPaidEl.textContent = paid;
+            const debt = due - paid;
+            grandTotalDebtEl.textContent = debt > 0 ? debt : 0;
+        }
+
+        window.deleteOrder = async (orderId, userName) => {
+            if (confirm(`確定要刪除「${userName}」的訂單嗎？此動作無法復原。`)) {
+                try { await deleteDoc(doc(db, "todayOrders", orderId)); } 
+                catch (e) { alert('刪除失敗：' + e.message); }
+            }
+        }
+
+        window.updatePaidAmount = async (orderId, newValue) => {
+            const amount = Number(newValue);
+            if (isNaN(amount)) { alert('請輸入有效的金額'); return; }
+            try { await updateDoc(doc(db, "todayOrders", orderId), { paidAmount: amount }); } 
+            catch (e) { alert('更新失敗：' + e.message); }
+        }
+
+        // --- E. 訂單統整邏輯 ---
+        function calculateAggregation(orders) {
+            const summaryMap = {};
+            let totalItemsCount = 0;
+            orders.forEach(order => {
+                order.items.forEach(item => {
+                    const qty = item.quantity || 1;
+                    totalItemsCount += qty;
+                    if (!summaryMap[item.name]) summaryMap[item.name] = { count: 0, notes: [] };
+                    summaryMap[item.name].count += qty;
+                    if (item.note) summaryMap[item.name].notes.push(`${qty}份:${item.note}`);
+                });
+            });
+            aggregatedListEl.innerHTML = '';
+            if (Object.keys(summaryMap).length === 0) { aggregatedListEl.innerHTML = '<li>當前場次尚無訂單</li>'; return; }
+            
+            const totalLi = document.createElement('li');
+            totalLi.innerHTML = `<strong>📊 總共訂購：${totalItemsCount} 份餐點</strong><hr style="margin: 5px 0; border-top: 1px dashed #ccc;">`;
+            aggregatedListEl.appendChild(totalLi);
+
+            for (const [foodName, data] of Object.entries(summaryMap)) {
+                const li = document.createElement('li');
+                let noteDisplay = data.notes.length > 0 ? `<span class="summary-notes">備註: ${data.notes.join('; ')}</span>` : '';
+                li.innerHTML = `<b>${foodName}</b> x ${data.count} 份 ${noteDisplay}`;
+                aggregatedListEl.appendChild(li);
+            }
+        }
+    </script>
 </body>
 </html>
