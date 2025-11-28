@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v11.3 兩步驟結帳)</title>
+    <title>✏️ 今天吃什麼？(v12.0 個人化版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 基礎樣式 (維持 v9.1) --- */
+        /* --- 基礎樣式 (維持 v11.3) --- */
         :root {
             --bg-color: #FFFBE6; --line-color: #4A3F35;
             --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
@@ -38,7 +38,6 @@
             transition: all 0.3s;
         }
         
-        /* v11.3 移除 .input-section 樣式，因為移到購物車裡了 */
         .status-section { background: var(--accent-green) !important; transform: rotate(-0.3deg); }
 
         header { text-align: center; margin-bottom: 20px; }
@@ -121,7 +120,6 @@
             box-shadow: 2px 2px 4px var(--paper-shadow);
         }
 
-        /* v11.0 修改：選中狀態 */
         .menu-item-checkbox.selected { 
             background: var(--accent-yellow); 
             outline: 3px solid var(--line-color);
@@ -134,7 +132,6 @@
             transform: scale(0.98) rotate(-0.5deg) skewX(-0.5deg) !important;
             box-shadow: 3px 3px 6px var(--sticker-shadow) !important;
         }
-        /* v11.0 修改：隱藏原本的 checkbox 和詳情區 */
         .checkbox-square, .item-details-container { display: none !important; }
 
         .food-info { flex-grow: 1; font-size: 1rem; display: flex; flex-wrap: wrap; align-items: center; line-height: 1.2;}
@@ -147,7 +144,6 @@
         }
         .note-input:focus, input[type="text"]:focus { outline: 2px solid var(--line-color); }
 
-        /* v11.3: 移動到購物車內的輸入區塊樣式 */
         .user-input-section-in-cart { 
             padding: 20px; background: var(--accent-blue); border-radius: 15px;
             border: 2px dashed var(--line-color); margin-bottom: 15px;
@@ -173,7 +169,6 @@
         .status-items-detail { padding-left: 30px; font-size: 0.9rem; opacity: 0.9; }
         .item-note { background: white; padding: 1px 6px; border-radius: 10px; margin-left: 5px; font-size: 0.8rem; color: #555; border: 1px dashed #aaa; display: inline-block;}
 
-        /* --- v11.0 新增：浮動購物車樣式 --- */
         .cart-fab {
             position: fixed; bottom: 30px; right: 30px;
             width: 60px; height: 60px; background: var(--accent-yellow);
@@ -191,7 +186,6 @@
         }
         .cart-count-badge[data-count="0"] { display: none; }
 
-        /* 2. 購物車側邊面板 (v11.3 優化) */
         .cart-panel {
             position: fixed; top: 0; right: -100%;
             width: 90%; max-width: 450px; height: 100%; background: #FFFBE6;
@@ -207,7 +201,6 @@
         .cart-header h3 { margin: 0; font-size: 1.3rem;}
         .close-cart-btn { background: none; border: none; font-size: 2rem; cursor: pointer; line-height: 1; color: var(--line-color); }
         
-        /* v11.3 新增：購物車步驟容器 */
         .cart-content-container { flex-grow: 1; overflow-y: auto; position: relative; }
         .cart-step { 
             padding: 20px; 
@@ -217,7 +210,6 @@
         .cart-step.hidden-left { opacity: 0; transform: translateX(-100%); pointer-events: none;}
         .cart-step.hidden-right { opacity: 0; transform: translateX(100%); pointer-events: none;}
 
-        .cart-items-list { }
         .empty-cart-msg { text-align: center; color: #888; font-style: italic; margin-top: 50px; }
         .cart-item {
             background: white; border: 2px solid var(--line-color); border-radius: 15px;
@@ -239,7 +231,6 @@
             font-family: inherit; font-size: 0.9rem; box-sizing: border-box;
         }
         
-        /* v11.3 修改：購物車底部按鈕區 */
         .cart-footer { padding: 20px; background: white; border-top: 3px dashed var(--line-color); flex-shrink: 0; }
         .cart-total { font-size: 1.3rem; font-weight: bold; text-align: right; margin-bottom: 15px; }
         
@@ -256,13 +247,27 @@
         .cart-btn-success { background: var(--success-green); color: white; border-color: darkgreen; box-shadow: 3px 3px 0 darkgreen;}
         .cart-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; filter: grayscale(1);}
 
-        /* 3. 遮罩層 */
         .cart-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
             z-index: 101; opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
         .cart-overlay.show { opacity: 1; pointer-events: auto; }
         body.order-closed .cart-fab { display: none; }
+
+        /* --- v12.0 新增：個人化歡迎區塊樣式 --- */
+        .personal-welcome-section {
+            display: none; /* 預設隱藏 */
+            background: var(--accent-blue); border-radius: 20px;
+            outline: 3px dashed var(--line-color); outline-offset: -5px;
+            border: 4px solid white;
+            box-shadow: 5px 5px 15px var(--paper-shadow);
+            padding: 15px; margin-bottom: 20px;
+            transform: rotate(0.5deg);
+            text-align: center;
+        }
+        .welcome-text { font-size: 1.1rem; font-weight: bold; margin: 0 0 10px 0; }
+        .last-order-info { font-size: 0.95rem; color: #555; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 10px; border: 2px dashed var(--line-color);}
+        .last-order-item { display: inline-block; margin: 2px 5px; font-weight: bold;}
     </style>
 </head>
 <body id="main-body">
@@ -279,6 +284,11 @@
         <h2 class="deadline-title">⏰ 點餐截止時間</h2>
         <div id="deadline-full-date" class="deadline-full-date">載入中...</div>
         <div id="countdown-timer" class="countdown-timer">計算中...</div>
+    </section>
+
+    <section id="personal-welcome-section" class="personal-welcome-section">
+        <p id="welcome-text" class="welcome-text"></p>
+        <div id="last-order-info" class="last-order-info">正在查詢您上次在這家餐廳的點餐紀錄...</div>
     </section>
 
     <main id="menu-section" class="hand-drawn-box menu-section">
@@ -355,9 +365,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, collection, addDoc, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // v12.0: 加入 limit 函數用於查詢最後一筆訂單
+        import { getFirestore, doc, onSnapshot, collection, addDoc, query, orderBy, serverTimestamp, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥🔥🔥 已自動填入您的 firebaseConfig 🔥🔥🔥
         const firebaseConfig = {
           apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
           authDomain: "cute-lunch-order.firebaseapp.com",
@@ -377,7 +387,6 @@
         const restaurantNameDisplay = document.getElementById('restaurant-name-display');
         const menuTimeInfoDisplay = document.getElementById('menu-time-info');
         const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
-        // v11.3: usernameInput 現在在購物車裡
         const usernameInput = document.getElementById('username-input');
         const liveStatusList = document.getElementById('live-status-list');
         const totalPeopleCountSpan = document.getElementById('total-people-count');
@@ -386,7 +395,12 @@
         const deadlineFullDateDisplay = document.getElementById('deadline-full-date');
         const countdownTimerDisplay = document.getElementById('countdown-timer');
 
-        // v11.3 購物車相關 DOM
+        // v12.0 個人化歡迎區塊 DOM
+        const personalWelcomeSection = document.getElementById('personal-welcome-section');
+        const welcomeText = document.getElementById('welcome-text');
+        const lastOrderInfo = document.getElementById('last-order-info');
+
+        // 購物車相關 DOM
         const cartFab = document.getElementById('cart-fab');
         const cartCountBadge = document.getElementById('cart-count-badge');
         const cartPanel = document.getElementById('cart-panel');
@@ -396,7 +410,6 @@
         const cartTotalPriceSpan = document.getElementById('cart-total-price');
         const cartOverlay = document.getElementById('cart-overlay');
         
-        // v11.3 購物車步驟與按鈕
         const cartStep1 = document.getElementById('cart-step-1');
         const cartStep2 = document.getElementById('cart-step-2');
         const cartBtnsStep1 = document.getElementById('cart-btns-step-1');
@@ -409,19 +422,96 @@
         let selectedAvatarChar = null;
         let cartItems = []; 
         let currentSessionId = null;
+        let currentRestaurantName = null; // v12.0 用於查詢歷史紀錄
         let unsubscribeOrders = null;
         let isManualClosed = false;
         let deadlineDate = null;
         let countdownInterval = null;
         let priceChangeMap = new Map(); 
         let globalItemIndex = 0;
-        let currentCartStep = 1; // v11.3 追蹤目前購物車步驟
+        let currentCartStep = 1;
+
+        // --- v12.0 新增：使用者偏好設定函數 (LocalStorage) ---
+        const STORAGE_KEY_USER = 'lunchOrderUserPrefs';
+
+        function saveUserPreferences(name, avatar) {
+            const prefs = { name: name, avatar: avatar, lastUpdated: new Date().getTime() };
+            localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(prefs));
+        }
+
+        function loadUserPreferences() {
+            const prefsJSON = localStorage.getItem(STORAGE_KEY_USER);
+            if (prefsJSON) {
+                try {
+                    return JSON.parse(prefsJSON);
+                } catch (e) {
+                    console.error('Error parsing user prefs:', e);
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        // --- v12.0 新增：查詢並顯示上次訂單紀錄 ---
+        async function checkAndDisplayLastOrder(userName, restaurantName) {
+            if (!userName || !restaurantName) return;
+
+            welcomeText.innerHTML = `${selectedAvatarChar} 嗨，<b>${userName}</b>！歡迎回來。`;
+            personalWelcomeSection.style.display = 'block';
+            lastOrderInfo.innerHTML = '正在查詢您上次在這家餐廳的點餐紀錄...';
+
+            // 查詢該使用者在這家餐廳的最近一筆訂單 (跨場次查詢)
+            // 注意：這裡假設 "todayOrders" 集合包含了所有歷史訂單。
+            // 如果未來訂單量大，可能需要建立專門的歷史紀錄索引或集合。
+            const q = query(
+                collection(db, "todayOrders"),
+                where("userName", "==", userName),
+                // 我們無法直接 where 餐廳名稱，因為訂單裡沒存。
+                // 這是一個簡化實作，我們只查這個人的最後一筆訂單，並假設它可能是在這家餐廳點的。
+                // 若要精確查詢「這家餐廳」的歷史，需要在訂單資料中加入 restaurantName 欄位。
+                // v12.0 先採用簡化做法：顯示最近一次的點餐。
+                orderBy("orderTime", "desc"),
+                limit(1)
+            );
+
+            try {
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const lastOrder = querySnapshot.docs[0].data();
+                    
+                    // 為了讓體驗更好，我們可以在這裡做一個簡單的判斷：
+                    // 雖然訂單裡沒有存餐廳名，但我們可以比對訂單裡的菜名是否在今日菜單中。
+                    // 如果大部分都在，那很可能就是這家餐廳的歷史紀錄。
+                    // (這裡先做最簡單的顯示，不做複雜比對)
+
+                    let itemsHtml = lastOrder.items.map(item => {
+                        const qtyHtml = item.quantity > 1 ? ` x${item.quantity}` : '';
+                        const noteHtml = item.note ? ` (${item.note})` : '';
+                        return `<span class="last-order-item">${item.name}${qtyHtml}${noteHtml}</span>`;
+                    }).join('、');
+                    
+                    const orderDate = lastOrder.orderTime ? new Date(lastOrder.orderTime.seconds * 1000).toLocaleDateString('zh-TW') : '之前的某天';
+
+                    lastOrderInfo.innerHTML = `您上次 (${orderDate}) 點了：<br>${itemsHtml}`;
+
+                } else {
+                    lastOrderInfo.innerHTML = '您以前好像還沒點過這家餐廳喔！試試看什麼好吃的吧？';
+                }
+            } catch (error) {
+                console.error("Error fetching last order:", error);
+                lastOrderInfo.innerHTML = '抱歉，查詢歷史紀錄時發生錯誤。';
+                // 如果是因為需要複合索引而失敗，在 console 裡會看到連結。
+                // 在開發階段，可以先忽略這個錯誤，或者手動在 Firebase Console 建立索引。
+            }
+        }
+
 
         // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                restaurantNameDisplay.textContent = data.restaurantName || '今日餐廳';
+                currentRestaurantName = data.restaurantName || '今日餐廳'; // v12.0 紀錄餐廳名稱
+                restaurantNameDisplay.textContent = currentRestaurantName;
                 restaurantPhoneDisplay.textContent = data.restaurantPhone ? `📞 電話: ${data.restaurantPhone}` : '';
                 
                 if (data.restaurantMapUrl) {
@@ -450,7 +540,6 @@
                 isManualClosed = data.isOrderClosed === true;
                 
                 startCountdown();
-                // v11.1 核心修改：只根據手動狀態決定是否鎖定
                 updateFormState(isManualClosed);
                 
                 processPriceChanges(data.comparisonSummary);
@@ -461,16 +550,30 @@
                     setupOrderListener(currentSessionId);
                 }
                 
-                // v11.0: 菜單更新時清空購物車
                 cartItems = [];
                 updateCartUI();
+
+                // --- v12.0: 菜單載入完成後，嘗試讀取使用者記憶 ---
+                const userPrefs = loadUserPreferences();
+                if (userPrefs && userPrefs.name && userPrefs.avatar) {
+                    // 自動填入資料
+                    usernameInput.value = userPrefs.name;
+                    const avatarEl = Array.from(document.querySelectorAll('.avatar-option')).find(el => el.textContent === userPrefs.avatar);
+                    if (avatarEl) {
+                        selectAvatar(avatarEl, userPrefs.avatar);
+                    }
+                    // 觸發查詢歷史紀錄
+                    checkAndDisplayLastOrder(userPrefs.name, currentRestaurantName);
+                }
+                // --------------------------------------------------
 
             } else {
                 menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
                 deadlineBanner.style.display = 'none';
+                personalWelcomeSection.style.display = 'none'; // v12.0 隱藏歡迎區塊
                 mapLinkContainer.innerHTML = '';
                 if (countdownInterval) clearInterval(countdownInterval);
-                updateFormState(true); // 無菜單時鎖定
+                updateFormState(true); 
             }
         });
 
@@ -506,11 +609,10 @@
             }
         }
 
-        // v11.1 核心修改：鎖定狀態只看 isLocked (即 isManualClosed)
         function updateFormState(isLocked) {
             if (isLocked) {
                 mainBody.classList.add('order-closed');
-                closeCart(); // 結單時關閉購物車
+                closeCart(); 
             } else {
                 mainBody.classList.remove('order-closed');
             }
@@ -607,7 +709,7 @@
             el.addEventListener('click', () => {
                 if (mainBody.classList.contains('order-closed')) return;
                 addToCart(item, dishIcon);
-                openCart(1); // v11.3: 加入後打開購物車並切換到步驟 1
+                openCart(1); 
             });
             return el;
         }
@@ -689,7 +791,6 @@
             cartItems.splice(index, 1);
             updateCartUI();
             updateMenuSelectionState();
-            // v11.3: 如果購物車空了，自動回到步驟 1
             if (cartItems.length === 0 && currentCartStep === 2) {
                 switchToCartStep(1);
             }
@@ -720,11 +821,9 @@
             cartPanel.classList.remove('open');
             cartOverlay.classList.remove('show');
             document.body.style.overflow = '';
-            // 關閉後重置回步驟 1
             setTimeout(() => { switchToCartStep(1); }, 300);
         }
 
-        // v11.3 切換購物車步驟
         function switchToCartStep(step) {
             currentCartStep = step;
             cartTitle.textContent = `我的餐點清單 (步驟 ${step}/2)`;
@@ -739,13 +838,11 @@
                 cartStep2.classList.remove('hidden-right');
                 cartBtnsStep1.style.display = 'none';
                 cartBtnsStep2.style.display = 'flex';
-                // 進入步驟 2 時，自動聚焦輸入框
                 setTimeout(() => usernameInput.focus(), 100);
             }
             checkSubmitButtonState();
         }
 
-        // 綁定購物車開關與步驟按鈕事件
         cartFab.addEventListener('click', () => openCart(1));
         closeCartBtn.addEventListener('click', closeCart);
         cartOverlay.addEventListener('click', closeCart);
@@ -754,7 +851,7 @@
         btnBackToCart.addEventListener('click', () => switchToCartStep(1));
 
 
-        // --- B. 用戶輸入互動 (v11.3 改在購物車內) ---
+        // --- B. 用戶輸入互動 ---
         window.selectAvatar = (element, char) => {
             if (mainBody.classList.contains('order-closed')) return;
             document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
@@ -763,16 +860,12 @@
             checkSubmitButtonState();
         }
 
-        // v11.3 修改：按鈕狀態檢查邏輯 (控制兩個步驟的按鈕)
         function checkSubmitButtonState() {
             const isClosed = mainBody.classList.contains('order-closed');
             const isCartEmpty = cartItems.length === 0;
             const isUserReady = selectedAvatarChar && usernameInput.value.trim() !== '';
             
-            // 控制步驟 1 的結帳按鈕
             btnToCheckout.disabled = isClosed || isCartEmpty;
-
-            // 控制步驟 2 的送出按鈕
             btnSubmitOrder.disabled = isClosed || isCartEmpty || !isUserReady;
 
             if (isClosed) {
@@ -785,7 +878,7 @@
         }
         usernameInput.addEventListener('input', checkSubmitButtonState);
 
-        // --- C. 送出訂單 (v11.3 修改：綁定新按鈕) ---
+        // --- C. 送出訂單 ---
         btnSubmitOrder.addEventListener('click', async () => {
             if (btnSubmitOrder.disabled || mainBody.classList.contains('order-closed')) return;
             if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
@@ -812,16 +905,26 @@
                     paidAmount: 0,
                     orderTime: serverTimestamp()
                 });
+
+                // v12.0: 成功送出後，儲存使用者偏好
+                saveUserPreferences(userName, selectedAvatarChar);
+
                 alert(`✅ ${userName}，訂單送出成功！`);
-                // 送出成功後清空資料並關閉購物車
+                
                 cartItems = [];
                 updateCartUI();
                 updateMenuSelectionState();
-                usernameInput.value = '';
-                document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
-                selectedAvatarChar = null;
+                // v12.0: 不需要清空輸入框和頭像，因為已經記住了
+                // usernameInput.value = '';
+                // document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
+                // selectedAvatarChar = null;
+                
                 closeCart();
                 checkSubmitButtonState();
+                
+                // v12.0: 重新觸發查詢歷史紀錄，顯示這次點的
+                checkAndDisplayLastOrder(userName, currentRestaurantName);
+
             } catch (e) {
                 alert('❌ 訂購失敗：' + e.message);
                 checkSubmitButtonState();
