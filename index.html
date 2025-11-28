@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v11.0 購物車版)</title>
+    <title>✏️ 今天吃什麼？(v11.3 兩步驟結帳)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎樣式 (維持 v9.1) --- */
@@ -38,7 +38,7 @@
             transition: all 0.3s;
         }
         
-        .input-section { background: var(--accent-blue) !important; transform: rotate(0.5deg); }
+        /* v11.3 移除 .input-section 樣式，因為移到購物車裡了 */
         .status-section { background: var(--accent-green) !important; transform: rotate(-0.3deg); }
 
         header { text-align: center; margin-bottom: 20px; }
@@ -147,8 +147,13 @@
         }
         .note-input:focus, input[type="text"]:focus { outline: 2px solid var(--line-color); }
 
-        .user-input-section { padding: 0; }
-        
+        /* v11.3: 移動到購物車內的輸入區塊樣式 */
+        .user-input-section-in-cart { 
+            padding: 20px; background: var(--accent-blue); border-radius: 15px;
+            border: 2px dashed var(--line-color); margin-bottom: 15px;
+            transform: rotate(0.5deg);
+        }
+
         .avatar-selector { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;}
         .avatar-option {
             width: 48px; height: 48px; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; cursor: pointer;
@@ -161,16 +166,6 @@
             box-shadow: 6px 6px 0 var(--line-color); transform: scale(1.15) translateY(-5px); z-index: 5;
         }
 
-        .submit-btn-wrapper { position: relative; width: 100%; padding: 5px;}
-        .submit-btn {
-            position: relative; z-index: 10;
-            background: var(--accent-pink); font-family: inherit; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.4rem; padding: 15px;
-            outline: 3px dashed var(--line-color); border: none;
-            border-radius: 30px 20px 30px 20px;
-            transition: all 0.1s; box-shadow: 5px 5px 0 var(--line-color);
-        }
-        .submit-btn:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--line-color); }
-
         .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed var(--line-color); padding-bottom: 10px; margin-bottom: 10px;}
         .status-item { padding: 10px 5px; border-bottom: 2px dashed rgba(74, 63, 53, 0.2); font-size: 0.95rem; }
         .status-user-row { display: flex; align-items: center; font-weight: bold; margin-bottom: 5px;}
@@ -179,7 +174,6 @@
         .item-note { background: white; padding: 1px 6px; border-radius: 10px; margin-left: 5px; font-size: 0.8rem; color: #555; border: 1px dashed #aaa; display: inline-block;}
 
         /* --- v11.0 新增：浮動購物車樣式 --- */
-        /* 1. 浮動按鈕 (FAB) */
         .cart-fab {
             position: fixed; bottom: 30px; right: 30px;
             width: 60px; height: 60px; background: var(--accent-yellow);
@@ -197,22 +191,33 @@
         }
         .cart-count-badge[data-count="0"] { display: none; }
 
-        /* 2. 購物車側邊面板 */
+        /* 2. 購物車側邊面板 (v11.3 優化) */
         .cart-panel {
             position: fixed; top: 0; right: -100%;
-            width: 85%; max-width: 400px; height: 100%; background: #FFFBE6;
+            width: 90%; max-width: 450px; height: 100%; background: #FFFBE6;
             z-index: 102; transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             display: flex; flex-direction: column; border-left: 3px dashed var(--line-color);
             box-shadow: -5px 0 15px rgba(0,0,0,0.2);
         }
         .cart-panel.open { right: 0; }
         .cart-header {
-            padding: 20px; background: var(--accent-yellow); display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 3px dashed var(--line-color);
+            padding: 15px 20px; background: var(--accent-yellow); display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px dashed var(--line-color); flex-shrink: 0;
         }
-        .cart-header h3 { margin: 0; }
+        .cart-header h3 { margin: 0; font-size: 1.3rem;}
         .close-cart-btn { background: none; border: none; font-size: 2rem; cursor: pointer; line-height: 1; color: var(--line-color); }
-        .cart-items-list { flex-grow: 1; overflow-y: auto; padding: 20px; }
+        
+        /* v11.3 新增：購物車步驟容器 */
+        .cart-content-container { flex-grow: 1; overflow-y: auto; position: relative; }
+        .cart-step { 
+            padding: 20px; 
+            position: absolute; top: 0; left: 0; width: 100%; box-sizing: border-box;
+            transition: all 0.3s ease-in-out; opacity: 1; transform: translateX(0);
+        }
+        .cart-step.hidden-left { opacity: 0; transform: translateX(-100%); pointer-events: none;}
+        .cart-step.hidden-right { opacity: 0; transform: translateX(100%); pointer-events: none;}
+
+        .cart-items-list { }
         .empty-cart-msg { text-align: center; color: #888; font-style: italic; margin-top: 50px; }
         .cart-item {
             background: white; border: 2px solid var(--line-color); border-radius: 15px;
@@ -233,14 +238,24 @@
             width: 100%; padding: 8px; margin-top: 10px; border: 2px dashed var(--line-color); border-radius: 8px;
             font-family: inherit; font-size: 0.9rem; box-sizing: border-box;
         }
-        .cart-footer { padding: 20px; background: white; border-top: 3px dashed var(--line-color); }
+        
+        /* v11.3 修改：購物車底部按鈕區 */
+        .cart-footer { padding: 20px; background: white; border-top: 3px dashed var(--line-color); flex-shrink: 0; }
         .cart-total { font-size: 1.3rem; font-weight: bold; text-align: right; margin-bottom: 15px; }
-        .cart-confirm-btn {
-            width: 100%; padding: 12px; background: var(--accent-pink); border: 3px solid var(--line-color);
-            border-radius: 30px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
-            box-shadow: 3px 3px 0 var(--line-color);
+        
+        .cart-actions-group { display: flex; gap: 10px; }
+        .cart-btn {
+            flex: 1; padding: 12px; border: 3px solid var(--line-color);
+            border-radius: 30px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            box-shadow: 3px 3px 0 var(--line-color); font-family: inherit;
+            transition: all 0.1s;
         }
-        .cart-confirm-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--line-color); }
+        .cart-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--line-color); }
+        .cart-btn-secondary { background: white; color: var(--line-color); }
+        .cart-btn-primary { background: var(--accent-pink); color: var(--line-color); }
+        .cart-btn-success { background: var(--success-green); color: white; border-color: darkgreen; box-shadow: 3px 3px 0 darkgreen;}
+        .cart-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; filter: grayscale(1);}
+
         /* 3. 遮罩層 */
         .cart-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
@@ -271,29 +286,7 @@
         <div id="menu-list-container">
             <p style="text-align: center;">正在載入菜單...</p>
         </div>
-        </main>
-
-    <section id="input-section" class="hand-drawn-box input-section">
-        <div class="user-input-section">
-            <h3 style="margin-top: 0;">輪到你點餐了：</h3>
-            <p style="text-align: center; margin-bottom: 15px; font-size: 0.9rem; color: #666;">(請先點選上方菜單，再到右下角購物車確認)</p>
-            <input type="text" id="username-input" placeholder="請輸入你的名字 (例如：小陳)">
-            
-            <p style="text-align: center; margin: 15px 0 10px 0; font-weight: bold; font-size: 1.1rem;">選擇一個頭像貼紙：</p>
-            <div class="avatar-selector" id="avatar-selector">
-                <div class="avatar-option" onclick="selectAvatar(this, '🐻')">🐻</div>
-                <div class="avatar-option" onclick="selectAvatar(this, '🐰')">🐰</div>
-                <div class="avatar-option" onclick="selectAvatar(this, '🐱')">🐱</div>
-                <div class="avatar-option" onclick="selectAvatar(this, '🐶')">🐶</div>
-                <div class="avatar-option" onclick="selectAvatar(this, '🦊')">🦊</div>
-                <div class="avatar-option" onclick="selectAvatar(this, '🐷')">🐷</div>
-            </div>
-
-            <div class="submit-btn-wrapper">
-                <button id="submit-btn" class="submit-btn" disabled>請先選擇餐點</button>
-            </div>
-        </div>
-    </section>
+    </main>
 
     <section class="hand-drawn-box status-section">
         <div class="status-header">
@@ -312,17 +305,49 @@
 
     <div id="cart-panel" class="cart-panel">
         <div class="cart-header">
-            <h3>我的餐點清單</h3>
+            <h3 id="cart-title">我的餐點清單 (步驟 1/2)</h3>
             <button id="close-cart-btn" class="close-cart-btn">×</button>
         </div>
-        <div id="cart-items-list" class="cart-items-list">
-            <p class="empty-cart-msg">您還沒有選擇任何餐點喔！</p>
+        
+        <div class="cart-content-container">
+            <div id="cart-step-1" class="cart-step">
+                <div id="cart-items-list" class="cart-items-list">
+                    <p class="empty-cart-msg">您還沒有選擇任何餐點喔！</p>
+                </div>
+            </div>
+            
+            <div id="cart-step-2" class="cart-step hidden-right">
+                 <div class="user-input-section-in-cart">
+                    <h3 style="margin-top: 0; text-align: center;">最後一步：填寫資料</h3>
+                    <input type="text" id="username-input" placeholder="請輸入你的名字 (例如：小陳)">
+                    
+                    <p style="text-align: center; margin: 15px 0 10px 0; font-weight: bold; font-size: 1.1rem;">選擇一個頭像貼紙：</p>
+                    <div class="avatar-selector" id="avatar-selector">
+                        <div class="avatar-option" onclick="selectAvatar(this, '🐻')">🐻</div>
+                        <div class="avatar-option" onclick="selectAvatar(this, '🐰')">🐰</div>
+                        <div class="avatar-option" onclick="selectAvatar(this, '🐱')">🐱</div>
+                        <div class="avatar-option" onclick="selectAvatar(this, '🐶')">🐶</div>
+                        <div class="avatar-option" onclick="selectAvatar(this, '🦊')">🦊</div>
+                        <div class="avatar-option" onclick="selectAvatar(this, '🐷')">🐷</div>
+                    </div>
+                </div>
+            </div>
         </div>
+
         <div class="cart-footer">
             <div class="cart-total">
                 總計：$<span id="cart-total-price">0</span>
             </div>
-            <button id="cart-confirm-btn" class="cart-confirm-btn">確認餐點</button>
+            
+            <div id="cart-btns-step-1" class="cart-actions-group">
+                <button id="btn-continue-shopping" class="cart-btn cart-btn-secondary">繼續點餐</button>
+                <button id="btn-to-checkout" class="cart-btn cart-btn-primary" disabled>前往結帳 👉</button>
+            </div>
+            
+            <div id="cart-btns-step-2" class="cart-actions-group" style="display: none;">
+                <button id="btn-back-to-cart" class="cart-btn cart-btn-secondary">👈 回上一步</button>
+                <button id="btn-submit-order" class="cart-btn cart-btn-success" disabled>確認送出訂單 ✅</button>
+            </div>
         </div>
     </div>
     <div id="cart-overlay" class="cart-overlay"></div>
@@ -352,9 +377,8 @@
         const restaurantNameDisplay = document.getElementById('restaurant-name-display');
         const menuTimeInfoDisplay = document.getElementById('menu-time-info');
         const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
+        // v11.3: usernameInput 現在在購物車裡
         const usernameInput = document.getElementById('username-input');
-        const submitBtn = document.getElementById('submit-btn');
-        // v11.0 移除 personalTotalDisplay
         const liveStatusList = document.getElementById('live-status-list');
         const totalPeopleCountSpan = document.getElementById('total-people-count');
         const mapLinkContainer = document.getElementById('map-link-container');
@@ -362,27 +386,36 @@
         const deadlineFullDateDisplay = document.getElementById('deadline-full-date');
         const countdownTimerDisplay = document.getElementById('countdown-timer');
 
-        // v11.0 新增購物車相關 DOM
+        // v11.3 購物車相關 DOM
         const cartFab = document.getElementById('cart-fab');
         const cartCountBadge = document.getElementById('cart-count-badge');
         const cartPanel = document.getElementById('cart-panel');
+        const cartTitle = document.getElementById('cart-title');
         const closeCartBtn = document.getElementById('close-cart-btn');
         const cartItemsList = document.getElementById('cart-items-list');
         const cartTotalPriceSpan = document.getElementById('cart-total-price');
-        const cartConfirmBtn = document.getElementById('cart-confirm-btn');
         const cartOverlay = document.getElementById('cart-overlay');
+        
+        // v11.3 購物車步驟與按鈕
+        const cartStep1 = document.getElementById('cart-step-1');
+        const cartStep2 = document.getElementById('cart-step-2');
+        const cartBtnsStep1 = document.getElementById('cart-btns-step-1');
+        const cartBtnsStep2 = document.getElementById('cart-btns-step-2');
+        const btnContinueShopping = document.getElementById('btn-continue-shopping');
+        const btnToCheckout = document.getElementById('btn-to-checkout');
+        const btnBackToCart = document.getElementById('btn-back-to-cart');
+        const btnSubmitOrder = document.getElementById('btn-submit-order');
 
         let selectedAvatarChar = null;
-        // v11.0 修改: cartItems 改為儲存完整的商品物件陣列
         let cartItems = []; 
         let currentSessionId = null;
         let unsubscribeOrders = null;
         let isManualClosed = false;
         let deadlineDate = null;
-        // let checkTimeInterval = null; // v11.1 移除：前台不需要定時檢查了
         let countdownInterval = null;
         let priceChangeMap = new Map(); 
         let globalItemIndex = 0;
+        let currentCartStep = 1; // v11.3 追蹤目前購物車步驟
 
         // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
@@ -477,15 +510,11 @@
         function updateFormState(isLocked) {
             if (isLocked) {
                 mainBody.classList.add('order-closed');
-                submitBtn.textContent = '⛔ 已手動結單，停止點餐';
-                submitBtn.disabled = true;
-                usernameInput.disabled = true;
                 closeCart(); // 結單時關閉購物車
             } else {
                 mainBody.classList.remove('order-closed');
-                checkSubmitButtonState(); // 按鈕狀態由購物車決定
-                usernameInput.disabled = false;
             }
+            checkSubmitButtonState();
         }
 
         function getIconForDish(dishName) {
@@ -575,11 +604,10 @@
                 </div>
             `;
             
-            // v11.0 修改點擊事件：加入購物車並打開面板
             el.addEventListener('click', () => {
                 if (mainBody.classList.contains('order-closed')) return;
                 addToCart(item, dishIcon);
-                openCart(); // 加入後自動打開購物車讓使用者確認
+                openCart(1); // v11.3: 加入後打開購物車並切換到步驟 1
             });
             return el;
         }
@@ -599,21 +627,18 @@
                 });
             }
             updateCartUI();
-            updateMenuSelectionState(); // 更新菜單上的選中狀態
+            updateMenuSelectionState(); 
         }
 
         // 3. 更新購物車介面 (Badge, Total, List)
         function updateCartUI() {
-            // 更新角標數量
             const totalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
             cartCountBadge.textContent = totalCount;
             cartCountBadge.setAttribute('data-count', totalCount);
 
-            // 更新總金額
             const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             cartTotalPriceSpan.textContent = totalPrice;
 
-            // 重新渲染購物車清單
             cartItemsList.innerHTML = '';
             if (cartItems.length === 0) {
                 cartItemsList.innerHTML = '<p class="empty-cart-msg">您還沒有選擇任何餐點喔！</p>';
@@ -637,7 +662,6 @@
                         <input type="text" class="cart-item-note-input" placeholder="備註 (例如: 加辣)" value="${item.note}">
                     `;
 
-                    // 綁定事件
                     itemEl.querySelector('.minus').addEventListener('click', () => updateCartItemQuantity(index, -1));
                     itemEl.querySelector('.plus').addEventListener('click', () => updateCartItemQuantity(index, 1));
                     itemEl.querySelector('.cart-item-remove').addEventListener('click', () => removeFromCart(index));
@@ -665,6 +689,10 @@
             cartItems.splice(index, 1);
             updateCartUI();
             updateMenuSelectionState();
+            // v11.3: 如果購物車空了，自動回到步驟 1
+            if (cartItems.length === 0 && currentCartStep === 2) {
+                switchToCartStep(1);
+            }
         }
 
         // 6. 更新菜單卡片的選中狀態 (視覺回饋)
@@ -672,7 +700,6 @@
             const menuCards = document.querySelectorAll('.menu-item-checkbox');
             menuCards.forEach(card => {
                 const itemName = card.querySelector('.food-info span').textContent;
-                // 檢查這個品項是否在購物車裡
                 const isInCart = cartItems.some(item => item.name === itemName);
                 if (isInCart) {
                     card.classList.add('selected');
@@ -682,26 +709,52 @@
             });
         }
 
-        // 7. 開啟/關閉購物車面板
-        function openCart() {
+        // --- v11.3 購物車面板與步驟控制 ---
+        function openCart(step = 1) {
             cartPanel.classList.add('open');
             cartOverlay.classList.add('show');
-            document.body.style.overflow = 'hidden'; // 防止背景滾動
+            document.body.style.overflow = 'hidden';
+            switchToCartStep(step);
         }
         function closeCart() {
             cartPanel.classList.remove('open');
             cartOverlay.classList.remove('show');
-            document.body.style.overflow = ''; // 恢復背景滾動
+            document.body.style.overflow = '';
+            // 關閉後重置回步驟 1
+            setTimeout(() => { switchToCartStep(1); }, 300);
         }
 
-        // 綁定購物車開關事件
-        cartFab.addEventListener('click', openCart);
+        // v11.3 切換購物車步驟
+        function switchToCartStep(step) {
+            currentCartStep = step;
+            cartTitle.textContent = `我的餐點清單 (步驟 ${step}/2)`;
+
+            if (step === 1) {
+                cartStep1.classList.remove('hidden-left');
+                cartStep2.classList.add('hidden-right');
+                cartBtnsStep1.style.display = 'flex';
+                cartBtnsStep2.style.display = 'none';
+            } else if (step === 2) {
+                cartStep1.classList.add('hidden-left');
+                cartStep2.classList.remove('hidden-right');
+                cartBtnsStep1.style.display = 'none';
+                cartBtnsStep2.style.display = 'flex';
+                // 進入步驟 2 時，自動聚焦輸入框
+                setTimeout(() => usernameInput.focus(), 100);
+            }
+            checkSubmitButtonState();
+        }
+
+        // 綁定購物車開關與步驟按鈕事件
+        cartFab.addEventListener('click', () => openCart(1));
         closeCartBtn.addEventListener('click', closeCart);
         cartOverlay.addEventListener('click', closeCart);
-        cartConfirmBtn.addEventListener('click', closeCart); // 確認後關閉
+        btnContinueShopping.addEventListener('click', closeCart);
+        btnToCheckout.addEventListener('click', () => switchToCartStep(2));
+        btnBackToCart.addEventListener('click', () => switchToCartStep(1));
 
 
-        // --- B. 用戶輸入互動 (維持 v9.1) ---
+        // --- B. 用戶輸入互動 (v11.3 改在購物車內) ---
         window.selectAvatar = (element, char) => {
             if (mainBody.classList.contains('order-closed')) return;
             document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
@@ -710,41 +763,37 @@
             checkSubmitButtonState();
         }
 
-        // v11.0 修改：按鈕狀態檢查邏輯
+        // v11.3 修改：按鈕狀態檢查邏輯 (控制兩個步驟的按鈕)
         function checkSubmitButtonState() {
-            // v11.1 修改：只檢查是否有手動結單樣式
-            if (mainBody.classList.contains('order-closed')) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = '⛔ 已手動結單，停止點餐';
-                return;
-            }
-
+            const isClosed = mainBody.classList.contains('order-closed');
             const isCartEmpty = cartItems.length === 0;
             const isUserReady = selectedAvatarChar && usernameInput.value.trim() !== '';
             
-            if (isCartEmpty) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = '請先選擇餐點';
-            } else if (!isUserReady) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = '請輸入名字並選擇頭像';
+            // 控制步驟 1 的結帳按鈕
+            btnToCheckout.disabled = isClosed || isCartEmpty;
+
+            // 控制步驟 2 的送出按鈕
+            btnSubmitOrder.disabled = isClosed || isCartEmpty || !isUserReady;
+
+            if (isClosed) {
+                 btnSubmitOrder.textContent = '⛔ 已結單';
+                 btnToCheckout.textContent = '⛔ 已結單';
             } else {
-                submitBtn.disabled = false;
-                submitBtn.textContent = `✅ 送出訂單 ($${cartTotalPriceSpan.textContent})`;
+                 btnSubmitOrder.textContent = '確認送出訂單 ✅';
+                 btnToCheckout.textContent = '前往結帳 👉';
             }
         }
         usernameInput.addEventListener('input', checkSubmitButtonState);
 
-        // --- C. 送出訂單 (v11.0 修改：從 cartItems 讀取資料) ---
-        submitBtn.addEventListener('click', async () => {
-            if (submitBtn.disabled || mainBody.classList.contains('order-closed')) return;
+        // --- C. 送出訂單 (v11.3 修改：綁定新按鈕) ---
+        btnSubmitOrder.addEventListener('click', async () => {
+            if (btnSubmitOrder.disabled || mainBody.classList.contains('order-closed')) return;
             if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
             
             const userName = usernameInput.value.trim();
-            submitBtn.textContent = '正在送出...';
-            submitBtn.disabled = true;
+            btnSubmitOrder.textContent = '正在送出...';
+            btnSubmitOrder.disabled = true;
 
-            // v11.0: 直接使用 cartItems 陣列
             const itemsToOrder = cartItems.map(item => ({
                 name: item.name,
                 price: item.price,
@@ -764,17 +813,18 @@
                     orderTime: serverTimestamp()
                 });
                 alert(`✅ ${userName}，訂單送出成功！`);
-                // 送出成功後清空購物車與輸入
+                // 送出成功後清空資料並關閉購物車
                 cartItems = [];
                 updateCartUI();
                 updateMenuSelectionState();
                 usernameInput.value = '';
                 document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
                 selectedAvatarChar = null;
+                closeCart();
                 checkSubmitButtonState();
             } catch (e) {
                 alert('❌ 訂購失敗：' + e.message);
-                checkSubmitButtonState(); // 恢復按鈕狀態
+                checkSubmitButtonState();
             }
         });
 

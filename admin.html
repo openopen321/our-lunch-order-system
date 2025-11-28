@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (v11.2 開關優化版)</title>
+    <title>🔧 管理後台 (v11.3 Grid布局)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 基礎樣式 (維持不變) --- */
+        /* --- 基礎樣式 --- */
         :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #d9534f; --success-green: #c7edb6; --warning-orange: #ffeeba; --paper-shadow: rgba(0, 0, 0, 0.15); }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
             background-size: 20px 20px; color: var(--line-color);
-            padding: 20px; max-width: 950px; margin: auto;
+            padding: 20px; 
+            /* v11.3: 移除 max-width 以適應 Grid */
+            margin: auto;
         }
         h1, h2 { text-align: center; margin-top: 0; }
         header { text-align: center; margin-bottom: 20px; }
@@ -26,9 +28,35 @@
             border: 4px solid white;
             box-shadow: 5px 5px 15px var(--paper-shadow);
             padding: 20px; margin-bottom: 30px;
-            transform: rotate(-0.5deg);
+            /* v11.3: 移除預設旋轉，在 grid 中更好對齊 */
+            transform: rotate(0deg) !important; 
+            height: fit-content; /* 讓盒子高度自適應內容 */
         }
         
+        /* --- v11.3 新增：CSS Grid 布局 --- */
+        .admin-main-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* 手機預設單欄 */
+            gap: 20px;
+            max-width: 1200px; /* 設定最大寬度以免太寬 */
+            margin: 0 auto;
+        }
+
+        /* 大螢幕 (平板橫向以上) 改為雙欄 */
+        @media (min-width: 900px) {
+            .admin-main-grid {
+                grid-template-columns: 300px 1fr; /* 左側固定 300px，右側自適應 */
+                align-items: start; /* 頂部對齊 */
+            }
+            /* 左側邊欄容器 */
+            .sidebar-column { display: flex; flex-direction: column; gap: 20px; }
+            /* 右側主內容容器 */
+            .main-content-column { }
+            /* 底部發布區塊跨兩欄 */
+            .publish-section-container { grid-column: 1 / -1; }
+        }
+        /* -------------------------------- */
+
         .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem;}
         .order-table th, .order-table td { border: 2px solid var(--line-color); padding: 8px; text-align: center; vertical-align: middle; background: white;}
         .order-table th { background: var(--accent-yellow); }
@@ -47,9 +75,8 @@
         .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
         .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
 
-        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 20px;}
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 20px; max-width: 1200px; margin-left: auto; margin-right: auto;}
         
-        /* v11.2 修改：手動控制區塊樣式 */
         .close-order-section { 
             flex-grow: 1; padding: 15px 25px; 
             background: white; border: 3px dashed var(--line-color); 
@@ -58,45 +85,30 @@
             box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
         }
 
-        /* --- v11.2 新增：滑動開關 (Toggle Switch) CSS --- */
-        .switch-container {
-            position: relative; display: inline-block; width: 120px; height: 44px;
-            margin-left: 20px;
-        }
+        /* 滑動開關 CSS (v11.2) */
+        .switch-container { position: relative; display: inline-block; width: 120px; height: 44px; margin-left: 20px; }
         .switch-input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: var(--danger-red); /* 預設紅色 (關閉) */
-            transition: .4s; border: 3px solid var(--line-color);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 10px; font-weight: bold; color: white; font-size: 1.1rem;
-        }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--danger-red); transition: .4s; border: 3px solid var(--line-color); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-weight: bold; color: white; font-size: 1.1rem; }
         .slider.round { border-radius: 34px; }
-        .slider:before {
-            position: absolute; content: ""; height: 32px; width: 32px;
-            left: 4px; bottom: 3px; background-color: white;
-            transition: .4s; border-radius: 50%; border: 2px solid var(--line-color);
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 2;
-        }
-        /* 當 checkbox 被勾選時的樣式 */
-        .switch-input:checked + .slider { background-color: var(--success-green); /* 綠色 (開啟) */ }
+        .slider:before { position: absolute; content: ""; height: 32px; width: 32px; left: 4px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; border: 2px solid var(--line-color); box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 2; }
+        .switch-input:checked + .slider { background-color: var(--success-green); }
         .switch-input:checked + .slider:before { transform: translateX(74px); }
-        
-        /* 開關文字標籤 */
         .switch-label-on { opacity: 0; transition: .4s; color: darkgreen; margin-left: 5px; text-shadow: 1px 1px 0 #fff;}
         .switch-label-off { opacity: 1; transition: .4s; color: white; margin-right: 35px; text-shadow: 1px 1px 0 var(--line-color);}
         .switch-input:checked + .slider .switch-label-on { opacity: 1; }
         .switch-input:checked + .slider .switch-label-off { opacity: 0; }
-        /* ------------------------------------ */
 
         .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
         .status-open { background: var(--success-green); color: darkgreen; border: 2px solid darkgreen;}
         .status-closed { background: var(--danger-red); color: white; border: 2px solid darkred;}
 
         .summary-header-info { font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.2);}
-        .summary-list { list-style: disc; padding-left: 40px; }
-        .summary-list li { margin-bottom: 8px; font-size: 1.1rem; }
-        .history-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto;}
+        .summary-list { list-style: disc; padding-left: 20px; margin: 0;} /* v11.3: 調整 padding */
+        .summary-list li { margin-bottom: 8px; font-size: 1rem; } /* v11.3: 調整字體大小 */
+        
+        /* v11.3: 限制列表高度並允許滾動 */
+        .scrollable-list-container { max-height: 300px; overflow-y: auto; padding-right: 5px;}
+        .history-list { list-style: none; padding: 0; margin: 0;}
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd; background: white;}
         
         textarea, input[type="text"], input[type="time"] { 
@@ -113,7 +125,7 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (v11.2 開關優化版)</h1>
+        <h1>🔧 管理後台 (v11.3 Grid布局)</h1>
         <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg);"></div>
         <div class="session-info">
             <span id="current-session-id">載入中...</span>
@@ -141,67 +153,79 @@
         </div>
     </div>
 
-    <section class="admin-box" style="background: var(--accent-pink); transform: rotate(0.5deg);">
-        <h2>☎️ 打電話用：訂單統整區 (當前場次)</h2>
-        <div id="summary-header" class="summary-header-info">讀取中...</div>
-        <ul id="aggregated-order-list" class="summary-list">
-            <li>計算中...</li>
-        </ul>
-    </section>
-
-    <section class="admin-box">
-        <h2>💰 訂單明細與管理 (當前場次)</h2>
-        <table class="order-table">
-            <thead>
-                <tr>
-                    <th style="width: 15%;">訂購人</th>
-                    <th style="width: 40%;">餐點明細 (數量/備註)</th>
-                    <th style="width: 10%;">應付</th>
-                    <th style="width: 15%;">已付</th>
-                    <th style="width: 10%;">狀態</th>
-                    <th style="width: 10%;">操作</th>
-                </tr>
-            </thead>
-            <tbody id="order-table-body">
-                </tbody>
-            <tfoot>
-                <tr style="font-weight: bold; background: #f0f0f0;">
-                    <td colspan="2" style="text-align: right;">當前場次合計:</td>
-                    <td>$<span id="grand-total-due">0</span></td>
-                    <td>$<span id="grand-total-paid">0</span></td>
-                    <td colspan="2" style="color: red;">未收: $<span id="grand-total-debt">0</span></td>
-                </tr>
-            </tfoot>
-        </table>
-    </section>
-
-    <section class="admin-box" style="background: #f9f9f9; transform: rotate(-0.3deg);">
-        <h2>📜 歷史餐廳紀錄</h2>
-        <ul id="history-list" class="history-list">
-            <p>正在載入歷史紀錄...</p>
-        </ul>
-    </section>
-
-    <section class="admin-box">
-        <h2>📤 開啟新團購 & 發布菜單</h2>
-        <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。系統會自動在背景比對變更。</p>
-        <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
+    <div class="admin-main-grid">
         
-        <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結，方便同事看照片">
+        <div class="sidebar-column">
+            <section class="admin-box" style="background: var(--accent-pink);">
+                <h2>☎️ 訂單統整 (打電話用)</h2>
+                <div id="summary-header" class="summary-header-info">讀取中...</div>
+                <div class="scrollable-list-container">
+                    <ul id="aggregated-order-list" class="summary-list">
+                        <li>計算中...</li>
+                    </ul>
+                </div>
+            </section>
 
-        <div class="time-input-container">
-            <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
-            <input type="time" id="deadline-time-input" value="11:30">
+            <section class="admin-box" style="background: #f9f9f9;">
+                <h2>📜 歷史餐廳紀錄</h2>
+                <div class="scrollable-list-container" style="max-height: 400px;">
+                    <ul id="history-list" class="history-list">
+                        <p>正在載入歷史紀錄...</p>
+                    </ul>
+                </div>
+            </section>
         </div>
 
-        <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
-    </section>
+        <div class="main-content-column">
+            <section class="admin-box">
+                <h2>💰 訂單明細與管理 (當前場次)</h2>
+                <div style="overflow-x: auto;"> <table class="order-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%;">訂購人</th>
+                                <th style="width: 40%;">餐點明細 (數量/備註)</th>
+                                <th style="width: 10%;">應付</th>
+                                <th style="width: 15%;">已付</th>
+                                <th style="width: 10%;">狀態</th>
+                                <th style="width: 10%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="order-table-body">
+                            </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; background: #f0f0f0;">
+                                <td colspan="2" style="text-align: right;">當前場次合計:</td>
+                                <td>$<span id="grand-total-due">0</span></td>
+                                <td>$<span id="grand-total-paid">0</span></td>
+                                <td colspan="2" style="color: red;">未收: $<span id="grand-total-debt">0</span></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </section>
+        </div>
+        
+        <div class="publish-section-container">
+            <section class="admin-box">
+                <h2>📤 開啟新團購 & 發布菜單</h2>
+                <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。</p>
+                <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
+                
+                <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結">
 
-    <script type="module">
+                <div class="time-input-container">
+                    <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
+                    <input type="time" id="deadline-time-input" value="11:30">
+                </div>
+
+                <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
+            </section>
+        </div>
+
+    </div> <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥🔥🔥 已自動填入您的 firebaseConfig 🔥🔥🔥
         const firebaseConfig = {
           apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
           authDomain: "cute-lunch-order.firebaseapp.com",
@@ -215,11 +239,9 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // DOM
         const adminRestaurantName = document.getElementById('admin-restaurant-name');
         const currentSessionIdDisplay = document.getElementById('current-session-id');
         const statusBadge = document.getElementById('status-badge');
-        // v11.2 修改：改為選取 checkbox input
         const toggleOrderStatusInput = document.getElementById('toggle-order-status');
         const closeOrderHint = document.getElementById('close-order-hint');
         const summaryHeader = document.getElementById('summary-header');
@@ -242,7 +264,6 @@
         let deadlineDate = null;
         let checkTimer = null;
 
-        // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
             if (docSnap.exists()) {
                 currentMenuData = docSnap.data();
@@ -281,7 +302,6 @@
                 adminRestaurantName.textContent = '尚未發布';
                 summaryHeader.textContent = '等待發布菜單...';
                 statusBadge.style.display = 'none';
-                // 無菜單時禁用開關
                 toggleOrderStatusInput.disabled = true;
                 toggleOrderStatusInput.checked = false;
                 closeOrderHint.textContent = '(請先發布菜單)';
@@ -297,7 +317,6 @@
             checkTimer = setInterval(updateStatusUI, 1000);
         }
 
-        // v11.2 核心邏輯修正：更新開關狀態與提示
         function updateStatusUI() {
             let isTimeUp = false;
             if (deadlineDate) {
@@ -305,14 +324,10 @@
                 if (now >= deadlineDate) isTimeUp = true;
             }
 
-            // 永遠允許操作
             toggleOrderStatusInput.disabled = false;
-
-            // 設定開關位置：如果不是關閉狀態 (即開放)，則勾選
             toggleOrderStatusInput.checked = !isOrderClosed;
 
             if (isOrderClosed) {
-                // 情況 1: 已手動結單 (開關在「關閉」位置)
                 statusBadge.textContent = '⛔ 已結單 (停止點餐)';
                 statusBadge.className = 'status-badge status-closed';
                 
@@ -322,9 +337,7 @@
                     closeOrderHint.innerHTML = '目前已鎖定。<br>將開關撥至「開啟」即可重新開放點餐。';
                 }
             } else {
-                // 情況 2: 開放中 (開關在「開啟」位置)
                 if (isTimeUp) {
-                    // 時間到，但仍開放 -> 給予黃色警告
                     statusBadge.textContent = '⚠️ 開放中 (已超時)';
                     statusBadge.className = 'status-badge';
                     statusBadge.style.background = '#ffeeba';
@@ -332,7 +345,6 @@
                     statusBadge.style.border = '2px solid #856404';
                     closeOrderHint.innerHTML = '⚠️ <b>注意：已超過截止時間！</b><br>建議盡快將開關撥至「關閉」以鎖定結單。';
                 } else {
-                    // 正常開放
                     statusBadge.textContent = '🟢 開放點餐中';
                     statusBadge.className = 'status-badge status-open';
                     closeOrderHint.innerHTML = '前台點餐進行中。<br>將開關撥至「關閉」即可鎖定結單。';
@@ -340,17 +352,13 @@
             }
         }
 
-        // --- v11.2 修改：監聽開關的 change 事件 ---
         toggleOrderStatusInput.addEventListener('change', async function() {
             if (!currentSessionId) return;
             
-            // this.checked 為 true 代表使用者想切換成「開啟」狀態
-            // 所以目標 isOrderClosed 狀態應該是反過來的 (false)
             const targetIsClosedState = !this.checked;
             
             let confirmMsg = targetIsClosedState ? "確定要「關閉」點餐嗎？前台將無法再送出訂單。" : "確定要「開啟」點餐嗎？";
             
-            // 如果要重新開放，且時間已到，多加一個提示
             if (!targetIsClosedState && deadlineDate && new Date() >= deadlineDate) {
                 confirmMsg = "⚠️ 注意：目前已超過截止時間。\n\n確定要「強制開啟」點餐嗎？";
             }
@@ -358,19 +366,16 @@
             if (confirm(confirmMsg)) {
                 try { 
                     await updateDoc(doc(db, "dailyData", "menu"), { isOrderClosed: targetIsClosedState }); 
-                    // 更新成功後，UI 會由 onSnapshot 自動更新
                 } catch (e) { 
                     alert('操作失敗：' + e.message);
-                    // 失敗時，把開關撥回原本的位置
                     this.checked = !this.checked;
                 }
             } else {
-                // 使用者取消操作，把開關撥回原本的位置
                 this.checked = !this.checked;
             }
         });
 
-        // --- B. 發布新菜單 (維持不變) ---
+        // --- B. 發布新菜單 ---
         publishBtn.addEventListener('click', async () => {
             const jsonString = adminJsonInput.value.trim();
             const deadlineTimeStr = deadlineTimeInput.value;
@@ -434,7 +439,6 @@
             }
         });
 
-        // 自動比對函數 (維持不變)
         function generateComparisonSummary(oldData, newData) {
             if (!oldData || oldData.restaurantName !== newData.restaurantName) {
                 return null;
@@ -462,7 +466,6 @@
             return hasChanges ? summary : null;
         }
 
-        // 輔助函數：扁平化菜單 (維持不變)
         function flattenMenu(menuData) {
             const itemsMap = new Map();
             let itemsArray = [];
@@ -475,8 +478,6 @@
             return itemsMap;
         }
 
-
-        // --- C. 監聽歷史紀錄 (維持不變) ---
         const historyQ = query(collection(db, 'restaurantHistory'), orderBy('lastUsed', 'desc'));
         onSnapshot(historyQ, (snapshot) => {
             historyListEl.innerHTML = '';
@@ -509,7 +510,6 @@
             });
         });
 
-        // --- D. 訂單監聽與渲染 (維持不變) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
@@ -576,7 +576,6 @@
             grandTotalDebtEl.textContent = debt > 0 ? debt : 0;
         }
 
-        // 將 deleteOrder 和 updatePaidAmount 掛載到 window 物件
         window.deleteOrder = async (orderId, userName) => {
             if (confirm(`確定要刪除「${userName}」的訂單嗎？此動作無法復原。`)) {
                 try { await deleteDoc(doc(db, "todayOrders", orderId)); } 
@@ -591,7 +590,6 @@
             catch (e) { alert('更新失敗：' + e.message); }
         }
 
-        // --- E. 訂單統整邏輯 (維持不變) ---
         function calculateAggregation(orders) {
             const summaryMap = {};
             let totalItemsCount = 0;
