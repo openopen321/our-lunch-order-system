@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (修正版)</title>
+    <title>🔧 管理後台 (v11.2 開關優化版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎樣式 (維持不變) --- */
@@ -47,17 +47,55 @@
         .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
         .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
 
-        .header-actions { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;}
-        .close-order-section { flex-grow: 1; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 15px; text-align: center; transform: rotate(1deg);}
-        .btn-close-order { background: #ff4d4d; color: white; font-size: 1.2rem; padding: 10px 30px; border: 3px solid var(--line-color); width: 100%; max-width: 400px; border-radius: 10px;}
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 20px;}
+        
+        /* v11.2 修改：手動控制區塊樣式 */
+        .close-order-section { 
+            flex-grow: 1; padding: 15px 25px; 
+            background: white; border: 3px dashed var(--line-color); 
+            border-radius: 20px; text-align: center; transform: rotate(0.5deg);
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
+        }
+
+        /* --- v11.2 新增：滑動開關 (Toggle Switch) CSS --- */
+        .switch-container {
+            position: relative; display: inline-block; width: 120px; height: 44px;
+            margin-left: 20px;
+        }
+        .switch-input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--danger-red); /* 預設紅色 (關閉) */
+            transition: .4s; border: 3px solid var(--line-color);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 10px; font-weight: bold; color: white; font-size: 1.1rem;
+        }
+        .slider.round { border-radius: 34px; }
+        .slider:before {
+            position: absolute; content: ""; height: 32px; width: 32px;
+            left: 4px; bottom: 3px; background-color: white;
+            transition: .4s; border-radius: 50%; border: 2px solid var(--line-color);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 2;
+        }
+        /* 當 checkbox 被勾選時的樣式 */
+        .switch-input:checked + .slider { background-color: var(--success-green); /* 綠色 (開啟) */ }
+        .switch-input:checked + .slider:before { transform: translateX(74px); }
+        
+        /* 開關文字標籤 */
+        .switch-label-on { opacity: 0; transition: .4s; color: darkgreen; margin-left: 5px; text-shadow: 1px 1px 0 #fff;}
+        .switch-label-off { opacity: 1; transition: .4s; color: white; margin-right: 35px; text-shadow: 1px 1px 0 var(--line-color);}
+        .switch-input:checked + .slider .switch-label-on { opacity: 1; }
+        .switch-input:checked + .slider .switch-label-off { opacity: 0; }
+        /* ------------------------------------ */
+
         .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
         .status-open { background: var(--success-green); color: darkgreen; border: 2px solid darkgreen;}
-        .status-closed { background: var(--danger-red); color: darkred; border: 2px solid darkred;}
+        .status-closed { background: var(--danger-red); color: white; border: 2px solid darkred;}
 
         .summary-header-info { font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.2);}
         .summary-list { list-style: disc; padding-left: 40px; }
         .summary-list li { margin-bottom: 8px; font-size: 1.1rem; }
-        .summary-notes { font-size: 0.9rem; color: #666; display: block; margin-top: 2px;}
         .history-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto;}
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd; background: white;}
         
@@ -75,7 +113,7 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (修正版)</h1>
+        <h1>🔧 管理後台 (v11.2 開關優化版)</h1>
         <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg);"></div>
         <div class="session-info">
             <span id="current-session-id">載入中...</span>
@@ -86,12 +124,20 @@
 
     <div class="header-actions">
         <div class="close-order-section">
-             <p style="margin: 5px 0; font-weight: bold;">手動結單控制</p>
-             <button id="btn-close-order" class="btn btn-close-order" disabled>載入中...</button>
-             <p id="close-order-hint" style="font-size: 0.8rem; margin: 5px 0 0 0; color: #666;">(可強制鎖定或重新開放前台點餐)</p>
+            <div style="text-align: left;">
+                <p style="margin: 5px 0; font-weight: bold; font-size: 1.2rem;">手動點餐開關</p>
+                <p id="close-order-hint" style="font-size: 0.9rem; margin: 5px 0 0 0; color: #666;">(載入中...)</p>
+            </div>
+             <label class="switch-container">
+                <input type="checkbox" id="toggle-order-status" class="switch-input" disabled>
+                <span class="slider round">
+                    <span class="switch-label-on">開啟</span>
+                    <span class="switch-label-off">關閉</span>
+                </span>
+            </label>
         </div>
         <div>
-            <a href="index.html" target="_blank" class="btn" style="text-decoration: none; background: var(--accent-blue); display: inline-block; margin-top: 20px;">➡️ 前往點餐頁面</a>
+            <a href="index.html" target="_blank" class="btn" style="text-decoration: none; background: var(--accent-blue); display: inline-block;">➡️ 前往點餐頁面</a>
         </div>
     </div>
 
@@ -173,7 +219,8 @@
         const adminRestaurantName = document.getElementById('admin-restaurant-name');
         const currentSessionIdDisplay = document.getElementById('current-session-id');
         const statusBadge = document.getElementById('status-badge');
-        const btnCloseOrder = document.getElementById('btn-close-order');
+        // v11.2 修改：改為選取 checkbox input
+        const toggleOrderStatusInput = document.getElementById('toggle-order-status');
         const closeOrderHint = document.getElementById('close-order-hint');
         const summaryHeader = document.getElementById('summary-header');
         const aggregatedListEl = document.getElementById('aggregated-order-list');
@@ -214,7 +261,6 @@
                     deadlineDisplay.textContent = '(未設定截止時間)';
                 }
                 
-                // 開始定期檢查狀態
                 startStatusCheck();
                 
                 let dateStr = '未知日期';
@@ -231,13 +277,13 @@
 
                 setupOrderListener(currentSessionId);
             } else {
-                // 無菜單時的狀態
                 if (checkTimer) clearInterval(checkTimer);
                 adminRestaurantName.textContent = '尚未發布';
                 summaryHeader.textContent = '等待發布菜單...';
                 statusBadge.style.display = 'none';
-                btnCloseOrder.disabled = true;
-                btnCloseOrder.textContent = '載入中...';
+                // 無菜單時禁用開關
+                toggleOrderStatusInput.disabled = true;
+                toggleOrderStatusInput.checked = false;
                 closeOrderHint.textContent = '(請先發布菜單)';
                 deadlineDisplay.textContent = '';
                 adminMapUrlInput.value = '';
@@ -245,14 +291,13 @@
             }
         });
 
-        // 定期檢查狀態的函數
         function startStatusCheck() {
             if (checkTimer) clearInterval(checkTimer);
-            updateStatusUI(); // 立即執行一次
-            checkTimer = setInterval(updateStatusUI, 1000); // 之後每秒檢查一次
+            updateStatusUI(); 
+            checkTimer = setInterval(updateStatusUI, 1000);
         }
 
-        // 核心邏輯修正：updateStatusUI
+        // v11.2 核心邏輯修正：更新開關狀態與提示
         function updateStatusUI() {
             let isTimeUp = false;
             if (deadlineDate) {
@@ -260,64 +305,68 @@
                 if (now >= deadlineDate) isTimeUp = true;
             }
 
-            // 邏輯優先順序：手動設定 > 時間截止
+            // 永遠允許操作
+            toggleOrderStatusInput.disabled = false;
+
+            // 設定開關位置：如果不是關閉狀態 (即開放)，則勾選
+            toggleOrderStatusInput.checked = !isOrderClosed;
+
             if (isOrderClosed) {
-                // 情況 1: 無論時間到了沒，只要手動是關閉的
-                statusBadge.textContent = '⛔ 已手動結單';
+                // 情況 1: 已手動結單 (開關在「關閉」位置)
+                statusBadge.textContent = '⛔ 已結單 (停止點餐)';
                 statusBadge.className = 'status-badge status-closed';
-                btnCloseOrder.textContent = '✅ 重新開放 (手動)';
-                btnCloseOrder.disabled = false; // 允許操作
-                btnCloseOrder.style.background = '#ccc';
-                btnCloseOrder.style.color = '#333';
-                closeOrderHint.textContent = '(點擊按鈕可手動重新開放前台點餐)';
-            } else if (isTimeUp) {
-                // 情況 2: 手動是開放的，但是時間到了
-                statusBadge.textContent = '⛔ 時間已到 (自動鎖定中)';
-                statusBadge.className = 'status-badge status-closed';
-                btnCloseOrder.textContent = '✅ 重新開放 (無視時間)';
-                btnCloseOrder.disabled = false; // 允許操作
-                btnCloseOrder.style.background = '#warning-orange'; // 用橘色提示
-                btnCloseOrder.style.color = '#333';
-                closeOrderHint.textContent = '(已超過截止時間，系統自動鎖定，但可手動強制開放)';
+                
+                if (isTimeUp) {
+                    closeOrderHint.innerHTML = '已超過截止時間。<br>將開關撥至「開啟」可強制開放點餐。';
+                } else {
+                    closeOrderHint.innerHTML = '目前已鎖定。<br>將開關撥至「開啟」即可重新開放點餐。';
+                }
             } else {
-                // 情況 3: 時間未到，且開放中
-                statusBadge.textContent = '🟢 手動開放中';
-                statusBadge.className = 'status-badge status-open';
-                btnCloseOrder.textContent = '🔴 鎖定結單 (停止點餐)';
-                btnCloseOrder.disabled = false; // 允許操作
-                btnCloseOrder.style.background = '#ff4d4d';
-                btnCloseOrder.style.color = 'white';
-                closeOrderHint.textContent = '(點擊按鈕可強制鎖定前台點餐)';
+                // 情況 2: 開放中 (開關在「開啟」位置)
+                if (isTimeUp) {
+                    // 時間到，但仍開放 -> 給予黃色警告
+                    statusBadge.textContent = '⚠️ 開放中 (已超時)';
+                    statusBadge.className = 'status-badge';
+                    statusBadge.style.background = '#ffeeba';
+                    statusBadge.style.color = '#856404';
+                    statusBadge.style.border = '2px solid #856404';
+                    closeOrderHint.innerHTML = '⚠️ <b>注意：已超過截止時間！</b><br>建議盡快將開關撥至「關閉」以鎖定結單。';
+                } else {
+                    // 正常開放
+                    statusBadge.textContent = '🟢 開放點餐中';
+                    statusBadge.className = 'status-badge status-open';
+                    closeOrderHint.innerHTML = '前台點餐進行中。<br>將開關撥至「關閉」即可鎖定結單。';
+                }
             }
         }
 
-        // --- 手動結單按鈕點擊事件 ---
-        btnCloseOrder.addEventListener('click', async () => {
+        // --- v11.2 修改：監聽開關的 change 事件 ---
+        toggleOrderStatusInput.addEventListener('change', async function() {
             if (!currentSessionId) return;
             
-            // 點擊後的目標狀態與現在相反
-            const targetStatus = !isOrderClosed;
+            // this.checked 為 true 代表使用者想切換成「開啟」狀態
+            // 所以目標 isOrderClosed 狀態應該是反過來的 (false)
+            const targetIsClosedState = !this.checked;
             
-            let confirmMsg = "";
-            if (targetStatus) {
-                 confirmMsg = "確定要「手動結單」嗎？前台將無法再點餐。";
-            } else {
-                // 如果要重新開放，檢查一下是不是已經超時了，給個提示
-                let isTimeUp = false;
-                if (deadlineDate) {
-                    const now = new Date();
-                    if (now >= deadlineDate) isTimeUp = true;
-                }
-                if (isTimeUp) {
-                    confirmMsg = "⚠️ 注意：目前已超過截止時間。\n\n確定要「強制重新開放」點餐嗎？";
-                } else {
-                    confirmMsg = "確定要「重新開放」點餐嗎？";
-                }
+            let confirmMsg = targetIsClosedState ? "確定要「關閉」點餐嗎？前台將無法再送出訂單。" : "確定要「開啟」點餐嗎？";
+            
+            // 如果要重新開放，且時間已到，多加一個提示
+            if (!targetIsClosedState && deadlineDate && new Date() >= deadlineDate) {
+                confirmMsg = "⚠️ 注意：目前已超過截止時間。\n\n確定要「強制開啟」點餐嗎？";
             }
 
             if (confirm(confirmMsg)) {
-                try { await updateDoc(doc(db, "dailyData", "menu"), { isOrderClosed: targetStatus }); } 
-                catch (e) { alert('操作失敗：' + e.message); }
+                try { 
+                    await updateDoc(doc(db, "dailyData", "menu"), { isOrderClosed: targetIsClosedState }); 
+                    // 更新成功後，UI 會由 onSnapshot 自動更新
+                } catch (e) { 
+                    alert('操作失敗：' + e.message);
+                    // 失敗時，把開關撥回原本的位置
+                    this.checked = !this.checked;
+                }
+            } else {
+                // 使用者取消操作，把開關撥回原本的位置
+                this.checked = !this.checked;
             }
         });
 
