@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v9.1 穩定回退版)</title>
+    <title>✏️ 今天吃什麼？(v11.0 購物車版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /* --- 基礎樣式 (維持 v9.1) --- */
         :root {
             --bg-color: #FFFBE6; --line-color: #4A3F35;
             --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
@@ -21,7 +22,7 @@
             background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
             background-size: 20px 20px; color: var(--line-color);
             margin: 0 auto; padding: 20px 15px; max-width: 500px;
-            padding-bottom: 120px;
+            padding-bottom: 120px; /* 預留空間給購物車按鈕 */
             overflow-x: hidden;
         }
         h1, h2, h3 { font-weight: normal; text-align: center; margin: 10px 0; }
@@ -120,6 +121,7 @@
             box-shadow: 2px 2px 4px var(--paper-shadow);
         }
 
+        /* v11.0 修改：選中狀態 */
         .menu-item-checkbox.selected { 
             background: var(--accent-yellow); 
             outline: 3px solid var(--line-color);
@@ -132,23 +134,11 @@
             transform: scale(0.98) rotate(-0.5deg) skewX(-0.5deg) !important;
             box-shadow: 3px 3px 6px var(--sticker-shadow) !important;
         }
+        /* v11.0 修改：隱藏原本的 checkbox 和詳情區 */
+        .checkbox-square, .item-details-container { display: none !important; }
 
-        .checkbox-square {
-            width: 18px; height: 18px; border: 2px solid var(--line-color); margin-right: 8px;
-            display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; background: white;
-            border-radius: 4px;
-        }
-        .menu-item-checkbox.selected .checkbox-square { background: white; color: var(--line-color);}
-        .menu-item-checkbox.selected .checkbox-square::after { content: '✓'; }
         .food-info { flex-grow: 1; font-size: 1rem; display: flex; flex-wrap: wrap; align-items: center; line-height: 1.2;}
         .food-info b { margin-left: 5px; font-size: 1.1rem;}
-        
-        .item-details-container {
-            display: none; padding: 10px; background: rgba(255,255,255,0.5);
-            border-top: 2px dashed var(--line-color);
-            border-radius: 0 0 15px 15px;
-        }
-        .menu-item-checkbox.selected .item-details-container { display: block; }
         
         .note-input, input[type="text"] {
             width: 100%; padding: 8px; font-family: inherit; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px;
@@ -156,14 +146,6 @@
             border-radius: 8px; box-shadow: 3px 3px 5px var(--paper-shadow);
         }
         .note-input:focus, input[type="text"]:focus { outline: 2px solid var(--line-color); }
-
-        .quantity-controls { display: flex; align-items: center; justify-content: space-between; font-weight: bold; font-size: 0.9rem;}
-        .qty-btn { 
-            width: 30px; height: 30px; border-radius: 50%; background: white; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
-            outline: 2px dashed var(--line-color); border: 2px solid white; box-shadow: 2px 2px 3px var(--paper-shadow);
-            transition: all 0.1s;
-        }
-        .qty-btn:active { background: var(--accent-yellow); transform: scale(0.9); box-shadow: 1px 1px 1px var(--paper-shadow);}
 
         .user-input-section { padding: 0; }
         
@@ -195,6 +177,77 @@
         .status-avatar { font-size: 1.2rem; margin-right: 8px; }
         .status-items-detail { padding-left: 30px; font-size: 0.9rem; opacity: 0.9; }
         .item-note { background: white; padding: 1px 6px; border-radius: 10px; margin-left: 5px; font-size: 0.8rem; color: #555; border: 1px dashed #aaa; display: inline-block;}
+
+        /* --- v11.0 新增：浮動購物車樣式 --- */
+        /* 1. 浮動按鈕 (FAB) */
+        .cart-fab {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px; background: var(--accent-yellow);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 100; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
+            border: 3px solid var(--line-color); transition: all 0.2s;
+        }
+        .cart-fab:active { transform: scale(0.95); box-shadow: 1px 1px 5px rgba(0,0,0,0.3); }
+        .cart-icon { font-size: 1.8rem; }
+        .cart-count-badge {
+            position: absolute; top: -5px; right: -5px;
+            background: var(--danger-red); color: white; font-size: 0.8rem; font-weight: bold;
+            width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            border: 2px solid white;
+        }
+        .cart-count-badge[data-count="0"] { display: none; }
+
+        /* 2. 購物車側邊面板 */
+        .cart-panel {
+            position: fixed; top: 0; right: -100%;
+            width: 85%; max-width: 400px; height: 100%; background: #FFFBE6;
+            z-index: 102; transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex; flex-direction: column; border-left: 3px dashed var(--line-color);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+        }
+        .cart-panel.open { right: 0; }
+        .cart-header {
+            padding: 20px; background: var(--accent-yellow); display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px dashed var(--line-color);
+        }
+        .cart-header h3 { margin: 0; }
+        .close-cart-btn { background: none; border: none; font-size: 2rem; cursor: pointer; line-height: 1; color: var(--line-color); }
+        .cart-items-list { flex-grow: 1; overflow-y: auto; padding: 20px; }
+        .empty-cart-msg { text-align: center; color: #888; font-style: italic; margin-top: 50px; }
+        .cart-item {
+            background: white; border: 2px solid var(--line-color); border-radius: 15px;
+            padding: 15px; margin-bottom: 15px; position: relative; box-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+        }
+        .cart-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .cart-item-name { font-weight: bold; font-size: 1.1rem; }
+        .cart-item-price { font-weight: bold; color: var(--danger-red); }
+        .cart-item-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 10px;}
+        .cart-qty-controls { display: flex; align-items: center; gap: 10px; }
+        .cart-qty-btn {
+            width: 28px; height: 28px; border-radius: 50%; background: white; border: 2px solid var(--line-color);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .cart-qty-btn:active { background: #eee; }
+        .cart-item-remove { color: var(--danger-red); cursor: pointer; font-size: 0.9rem; text-decoration: underline;}
+        .cart-item-note-input {
+            width: 100%; padding: 8px; margin-top: 10px; border: 2px dashed var(--line-color); border-radius: 8px;
+            font-family: inherit; font-size: 0.9rem; box-sizing: border-box;
+        }
+        .cart-footer { padding: 20px; background: white; border-top: 3px dashed var(--line-color); }
+        .cart-total { font-size: 1.3rem; font-weight: bold; text-align: right; margin-bottom: 15px; }
+        .cart-confirm-btn {
+            width: 100%; padding: 12px; background: var(--accent-pink); border: 3px solid var(--line-color);
+            border-radius: 30px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
+            box-shadow: 3px 3px 0 var(--line-color);
+        }
+        .cart-confirm-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--line-color); }
+        /* 3. 遮罩層 */
+        .cart-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 101; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .cart-overlay.show { opacity: 1; pointer-events: auto; }
+        body.order-closed .cart-fab { display: none; }
     </style>
 </head>
 <body id="main-body">
@@ -218,15 +271,12 @@
         <div id="menu-list-container">
             <p style="text-align: center;">正在載入菜單...</p>
         </div>
-        <hr style="border: none; border-top: 3px dashed var(--line-color); margin: 25px 0; opacity: 0.5;">
-        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 1.2rem;">
-            您的選擇總計： $<span id="personal-total">0</span>
-        </div>
-    </main>
+        </main>
 
     <section id="input-section" class="hand-drawn-box input-section">
         <div class="user-input-section">
             <h3 style="margin-top: 0;">輪到你點餐了：</h3>
+            <p style="text-align: center; margin-bottom: 15px; font-size: 0.9rem; color: #666;">(請先點選上方菜單，再到右下角購物車確認)</p>
             <input type="text" id="username-input" placeholder="請輸入你的名字 (例如：小陳)">
             
             <p style="text-align: center; margin: 15px 0 10px 0; font-weight: bold; font-size: 1.1rem;">選擇一個頭像貼紙：</p>
@@ -240,7 +290,7 @@
             </div>
 
             <div class="submit-btn-wrapper">
-                <button id="submit-btn" class="submit-btn" disabled>✅ 送出訂單</button>
+                <button id="submit-btn" class="submit-btn" disabled>請先選擇餐點</button>
             </div>
         </div>
     </section>
@@ -254,6 +304,28 @@
             <p style="text-align: center; opacity: 0.7;">目前還沒有人點餐...</p>
         </ul>
     </section>
+
+    <div id="cart-fab" class="cart-fab">
+        <span class="cart-icon">🛒</span>
+        <span id="cart-count-badge" class="cart-count-badge" data-count="0">0</span>
+    </div>
+
+    <div id="cart-panel" class="cart-panel">
+        <div class="cart-header">
+            <h3>我的餐點清單</h3>
+            <button id="close-cart-btn" class="close-cart-btn">×</button>
+        </div>
+        <div id="cart-items-list" class="cart-items-list">
+            <p class="empty-cart-msg">您還沒有選擇任何餐點喔！</p>
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                總計：$<span id="cart-total-price">0</span>
+            </div>
+            <button id="cart-confirm-btn" class="cart-confirm-btn">確認餐點</button>
+        </div>
+    </div>
+    <div id="cart-overlay" class="cart-overlay"></div>
 
 
     <script type="module">
@@ -282,7 +354,7 @@
         const restaurantPhoneDisplay = document.getElementById('restaurant-phone');
         const usernameInput = document.getElementById('username-input');
         const submitBtn = document.getElementById('submit-btn');
-        const personalTotalDisplay = document.getElementById('personal-total');
+        // v11.0 移除 personalTotalDisplay
         const liveStatusList = document.getElementById('live-status-list');
         const totalPeopleCountSpan = document.getElementById('total-people-count');
         const mapLinkContainer = document.getElementById('map-link-container');
@@ -290,8 +362,19 @@
         const deadlineFullDateDisplay = document.getElementById('deadline-full-date');
         const countdownTimerDisplay = document.getElementById('countdown-timer');
 
+        // v11.0 新增購物車相關 DOM
+        const cartFab = document.getElementById('cart-fab');
+        const cartCountBadge = document.getElementById('cart-count-badge');
+        const cartPanel = document.getElementById('cart-panel');
+        const closeCartBtn = document.getElementById('close-cart-btn');
+        const cartItemsList = document.getElementById('cart-items-list');
+        const cartTotalPriceSpan = document.getElementById('cart-total-price');
+        const cartConfirmBtn = document.getElementById('cart-confirm-btn');
+        const cartOverlay = document.getElementById('cart-overlay');
+
         let selectedAvatarChar = null;
-        let currentSelectionsMap = new Map();
+        // v11.0 修改: cartItems 改為儲存完整的商品物件陣列
+        let cartItems = []; 
         let currentSessionId = null;
         let unsubscribeOrders = null;
         let isManualClosed = false;
@@ -301,7 +384,7 @@
         let priceChangeMap = new Map(); 
         let globalItemIndex = 0;
 
-        // --- A. 監聽菜單資訊與狀態 ---
+        // --- A. 監聽菜單資訊與狀態 (維持不變) ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -346,6 +429,11 @@
                 if (currentSessionId) {
                     setupOrderListener(currentSessionId);
                 }
+                
+                // v11.0: 菜單更新時清空購物車
+                cartItems = [];
+                updateCartUI();
+
             } else {
                 menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
                 deadlineBanner.style.display = 'none';
@@ -355,7 +443,7 @@
             }
         });
 
-        // 倒數計時功能
+        // 倒數計時功能 (維持不變)
         function startCountdown() {
             if (countdownInterval) clearInterval(countdownInterval);
             if (!deadlineDate) { countdownTimerDisplay.textContent = '---'; return; }
@@ -379,13 +467,11 @@
             countdownInterval = setInterval(updateTimer, 1000);
         }
 
-
         function processPriceChanges(summary) {
             priceChangeMap.clear();
             if (summary && summary.changedItems) {
                 summary.changedItems.forEach(item => {
-                    const diff = item.newPrice - item.oldPrice;
-                    priceChangeMap.set(item.name, diff);
+                    priceChangeMap.set(item.name, item.newPrice - item.oldPrice);
                 });
             }
         }
@@ -407,11 +493,11 @@
                 else submitBtn.textContent = '⛔ 已手動結單，停止點餐';
                 submitBtn.disabled = true;
                 usernameInput.disabled = true;
+                closeCart(); // 結單時關閉購物車
             } else {
                 mainBody.classList.remove('order-closed');
-                submitBtn.textContent = '✅ 送出訂單';
+                checkSubmitButtonState(); // 按鈕狀態由購物車決定
                 usernameInput.disabled = false;
-                checkSubmitButtonState();
             }
         }
 
@@ -440,38 +526,27 @@
             return '🍽️';
         }
 
-        // renderMenu
+        // renderMenu (維持不變)
         function renderMenu(data) {
             menuContainer.innerHTML = '';
-            currentSelectionsMap.clear();
-            updatePersonalSummary();
             globalItemIndex = 0;
-
             if (data.menuCategories && Array.isArray(data.menuCategories)) {
                 data.menuCategories.forEach(category => {
                     const titleEl = document.createElement('div');
                     titleEl.classList.add('category-title');
                     titleEl.textContent = category.categoryName;
                     menuContainer.appendChild(titleEl);
-
                     const listEl = document.createElement('div');
                     listEl.classList.add('menu-grid');
-                    category.items.forEach(item => {
-                        listEl.appendChild(createMenuItemElement(item));
-                    });
+                    category.items.forEach(item => { listEl.appendChild(createMenuItemElement(item)); });
                     menuContainer.appendChild(listEl);
                 });
             } else if (data.menuItems && Array.isArray(data.menuItems)) {
                 const listEl = document.createElement('div');
                 listEl.classList.add('menu-grid');
-                data.menuItems.forEach(item => {
-                    listEl.appendChild(createMenuItemElement(item));
-                });
+                data.menuItems.forEach(item => { listEl.appendChild(createMenuItemElement(item)); });
                 menuContainer.appendChild(listEl);
-            } else {
-                 menuContainer.innerHTML = '<p>菜單資料格式錯誤或為空。</p>';
-            }
-
+            } else { menuContainer.innerHTML = '<p>菜單資料格式錯誤或為空。</p>'; }
             setupScrollAnimations();
         }
 
@@ -484,32 +559,23 @@
                     }
                 });
             }, { threshold: 0.1 });
-
-            const menuItems = document.querySelectorAll('.menu-item-checkbox');
-            menuItems.forEach(item => {
-                observer.observe(item);
-            });
+            document.querySelectorAll('.menu-item-checkbox').forEach(item => observer.observe(item));
         }
 
+        // --- v11.0 核心：購物車邏輯 ---
 
-        // 建立菜單項目元素
+        // 1. 建立菜單項目 (點擊加入購物車)
         function createMenuItemElement(item) {
             const el = document.createElement('div');
             el.classList.add('menu-item-checkbox');
-
             el.style.transitionDelay = `${globalItemIndex * 0.025}s`;
             globalItemIndex++;
 
             let priceNoteHtml = '';
             if (priceChangeMap.has(item.name)) {
                 const diff = priceChangeMap.get(item.name);
-                if (diff > 0) {
-                    priceNoteHtml = `<span class="price-note-up">(漲${diff})</span>`;
-                } else if (diff < 0) {
-                    priceNoteHtml = `<span class="price-note-down">(降${Math.abs(diff)})</span>`;
-                }
+                priceNoteHtml = diff > 0 ? `<span class="price-note-up">(漲${diff})</span>` : `<span class="price-note-down">(降${Math.abs(diff)})</span>`;
             }
-
             const dishIcon = getIconForDish(item.name);
 
             el.innerHTML = `
@@ -517,67 +583,138 @@
                     <div class="food-icon-wrapper">${dishIcon}</div>
                     <div class="food-info">
                         <span>${item.name}</span>
-                        <div>
-                            <b>$${item.price}</b>${priceNoteHtml}
-                        </div>
+                        <div><b>$${item.price}</b>${priceNoteHtml}</div>
                     </div>
-                    <div class="checkbox-square"></div>
-                </div>
-                <div class="item-details-container">
-                    <div class="quantity-controls" style="margin-bottom: 10px;">
-                        <button class="qty-btn minus">-</button>
-                        <span>數量: <span class="qty-display">1</span></span>
-                        <button class="qty-btn plus">+</button>
-                    </div>
-                    <input type="text" class="note-input" placeholder="備註 (例如: 加辣)">
                 </div>
             `;
             
-            const header = el.querySelector('.menu-item-header');
-            const noteInput = el.querySelector('.note-input');
-            const qtyDisplay = el.querySelector('.qty-display');
-            const minusBtn = el.querySelector('.minus');
-            const plusBtn = el.querySelector('.plus');
-
-            header.addEventListener('click', () => {
+            // v11.0 修改點擊事件：加入購物車並打開面板
+            el.addEventListener('click', () => {
                 if (mainBody.classList.contains('order-closed')) return;
-                el.classList.toggle('selected');
-                if (el.classList.contains('selected')) {
-                    currentSelectionsMap.set(item.name, { originalItem: item, noteInputDOM: noteInput, quantityDOM: qtyDisplay });
-                    qtyDisplay.textContent = '1';
-                } else {
-                    currentSelectionsMap.delete(item.name);
-                    noteInput.value = ''; 
-                }
-                updatePersonalSummary();
-                checkSubmitButtonState();
+                addToCart(item, dishIcon);
+                openCart(); // 加入後自動打開購物車讓使用者確認
             });
-
-            minusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, -1); });
-            plusBtn.addEventListener('click', (e) => { e.stopPropagation(); changeQuantity(item.name, 1); });
             return el;
         }
 
-        function changeQuantity(itemName, delta) {
-            if (mainBody.classList.contains('order-closed')) return;
-            const selection = currentSelectionsMap.get(itemName);
-            if (!selection) return;
-            let currentQty = parseInt(selection.quantityDOM.textContent);
-            let newQty = currentQty + delta;
-            if (newQty < 1) newQty = 1;
-            selection.quantityDOM.textContent = newQty;
-            updatePersonalSummary();
+        // 2. 加入購物車
+        function addToCart(item, icon) {
+            const existingItem = cartItems.find(i => i.name === item.name);
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cartItems.push({
+                    name: item.name,
+                    price: item.price,
+                    quantity: 1,
+                    note: '',
+                    icon: icon
+                });
+            }
+            updateCartUI();
+            updateMenuSelectionState(); // 更新菜單上的選中狀態
         }
 
-        function updatePersonalSummary() {
-            let total = 0;
-            currentSelectionsMap.forEach(sel => {
-                total += sel.originalItem.price * parseInt(sel.quantityDOM.textContent);
+        // 3. 更新購物車介面 (Badge, Total, List)
+        function updateCartUI() {
+            // 更新角標數量
+            const totalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+            cartCountBadge.textContent = totalCount;
+            cartCountBadge.setAttribute('data-count', totalCount);
+
+            // 更新總金額
+            const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            cartTotalPriceSpan.textContent = totalPrice;
+
+            // 重新渲染購物車清單
+            cartItemsList.innerHTML = '';
+            if (cartItems.length === 0) {
+                cartItemsList.innerHTML = '<p class="empty-cart-msg">您還沒有選擇任何餐點喔！</p>';
+            } else {
+                cartItems.forEach((item, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.classList.add('cart-item');
+                    itemEl.innerHTML = `
+                        <div class="cart-item-header">
+                            <div><span style="font-size:1.2rem">${item.icon}</span> <span class="cart-item-name">${item.name}</span></div>
+                            <div class="cart-item-price">$${item.price * item.quantity}</div>
+                        </div>
+                        <div class="cart-item-controls">
+                            <div class="cart-qty-controls">
+                                <button class="cart-qty-btn minus">-</button>
+                                <span>${item.quantity}</span>
+                                <button class="cart-qty-btn plus">+</button>
+                            </div>
+                            <span class="cart-item-remove">刪除</span>
+                        </div>
+                        <input type="text" class="cart-item-note-input" placeholder="備註 (例如: 加辣)" value="${item.note}">
+                    `;
+
+                    // 綁定事件
+                    itemEl.querySelector('.minus').addEventListener('click', () => updateCartItemQuantity(index, -1));
+                    itemEl.querySelector('.plus').addEventListener('click', () => updateCartItemQuantity(index, 1));
+                    itemEl.querySelector('.cart-item-remove').addEventListener('click', () => removeFromCart(index));
+                    itemEl.querySelector('.cart-item-note-input').addEventListener('input', (e) => { item.note = e.target.value.trim(); });
+                    
+                    cartItemsList.appendChild(itemEl);
+                });
+            }
+            checkSubmitButtonState();
+        }
+
+        // 4. 更新購物車商品數量
+        function updateCartItemQuantity(index, delta) {
+            const item = cartItems[index];
+            item.quantity += delta;
+            if (item.quantity <= 0) {
+                removeFromCart(index);
+            } else {
+                updateCartUI();
+            }
+        }
+
+        // 5. 從購物車移除
+        function removeFromCart(index) {
+            cartItems.splice(index, 1);
+            updateCartUI();
+            updateMenuSelectionState();
+        }
+
+        // 6. 更新菜單卡片的選中狀態 (視覺回饋)
+        function updateMenuSelectionState() {
+            const menuCards = document.querySelectorAll('.menu-item-checkbox');
+            menuCards.forEach(card => {
+                const itemName = card.querySelector('.food-info span').textContent;
+                // 檢查這個品項是否在購物車裡
+                const isInCart = cartItems.some(item => item.name === itemName);
+                if (isInCart) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
             });
-            personalTotalDisplay.textContent = total;
         }
 
-        // --- B. 用戶輸入互動 ---
+        // 7. 開啟/關閉購物車面板
+        function openCart() {
+            cartPanel.classList.add('open');
+            cartOverlay.classList.add('show');
+            document.body.style.overflow = 'hidden'; // 防止背景滾動
+        }
+        function closeCart() {
+            cartPanel.classList.remove('open');
+            cartOverlay.classList.remove('show');
+            document.body.style.overflow = ''; // 恢復背景滾動
+        }
+
+        // 綁定購物車開關事件
+        cartFab.addEventListener('click', openCart);
+        closeCartBtn.addEventListener('click', closeCart);
+        cartOverlay.addEventListener('click', closeCart);
+        cartConfirmBtn.addEventListener('click', closeCart); // 確認後關閉
+
+
+        // --- B. 用戶輸入互動 (維持 v9.1) ---
         window.selectAvatar = (element, char) => {
             if (mainBody.classList.contains('order-closed')) return;
             document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
@@ -586,19 +723,31 @@
             checkSubmitButtonState();
         }
 
+        // v11.0 修改：按鈕狀態檢查邏輯
         function checkSubmitButtonState() {
             if (mainBody.classList.contains('order-closed')) {
-                submitBtn.disabled = true; return;
-            }
-            if (selectedAvatarChar && usernameInput.value.trim() !== '' && currentSelectionsMap.size > 0 && currentSessionId) {
-                submitBtn.disabled = false;
-            } else {
                 submitBtn.disabled = true;
+                submitBtn.textContent = submitBtn.textContent.includes('時間到') ? '⛔ 時間已到，停止點餐' : '⛔ 已手動結單，停止點餐';
+                return;
+            }
+
+            const isCartEmpty = cartItems.length === 0;
+            const isUserReady = selectedAvatarChar && usernameInput.value.trim() !== '';
+            
+            if (isCartEmpty) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '請先選擇餐點';
+            } else if (!isUserReady) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '請輸入名字並選擇頭像';
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.textContent = `✅ 送出訂單 ($${cartTotalPriceSpan.textContent})`;
             }
         }
         usernameInput.addEventListener('input', checkSubmitButtonState);
 
-        // --- C. 送出訂單 ---
+        // --- C. 送出訂單 (v11.0 修改：從 cartItems 讀取資料) ---
         submitBtn.addEventListener('click', async () => {
             if (submitBtn.disabled || mainBody.classList.contains('order-closed')) return;
             if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
@@ -607,18 +756,14 @@
             submitBtn.textContent = '正在送出...';
             submitBtn.disabled = true;
 
-            const itemsToOrder = [];
-            let totalCost = 0;
-            currentSelectionsMap.forEach(sel => {
-                const qty = parseInt(sel.quantityDOM.textContent);
-                itemsToOrder.push({
-                    name: sel.originalItem.name,
-                    price: sel.originalItem.price,
-                    note: sel.noteInputDOM.value.trim(),
-                    quantity: qty
-                });
-                totalCost += sel.originalItem.price * qty;
-            });
+            // v11.0: 直接使用 cartItems 陣列
+            const itemsToOrder = cartItems.map(item => ({
+                name: item.name,
+                price: item.price,
+                note: item.note,
+                quantity: item.quantity
+            }));
+            const totalCost = parseInt(cartTotalPriceSpan.textContent);
 
             try {
                 await addDoc(collection(db, "todayOrders"), {
@@ -631,15 +776,21 @@
                     orderTime: serverTimestamp()
                 });
                 alert(`✅ ${userName}，訂單送出成功！`);
-                window.location.reload(); 
+                // 送出成功後清空購物車與輸入
+                cartItems = [];
+                updateCartUI();
+                updateMenuSelectionState();
+                usernameInput.value = '';
+                document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
+                selectedAvatarChar = null;
+                checkSubmitButtonState();
             } catch (e) {
                 alert('❌ 訂購失敗：' + e.message);
-                submitBtn.disabled = false;
-                submitBtn.textContent = '✅ 送出訂單';
+                checkSubmitButtonState(); // 恢復按鈕狀態
             }
         });
 
-        // --- D. 即時監聽點餐狀況 ---
+        // --- D. 即時監聽點餐狀況 (維持 v9.1) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
