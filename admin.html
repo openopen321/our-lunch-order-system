@@ -1,4 +1,157 @@
-<script type="module">
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 管理後台 (修正版)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- 基礎樣式 (維持不變) --- */
+        :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #d9534f; --success-green: #c7edb6; --warning-orange: #ffeeba; --paper-shadow: rgba(0, 0, 0, 0.15); }
+        body {
+            font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
+            background-size: 20px 20px; color: var(--line-color);
+            padding: 20px; max-width: 950px; margin: auto;
+        }
+        h1, h2 { text-align: center; margin-top: 0; }
+        header { text-align: center; margin-bottom: 20px; }
+        .session-info { font-size: 0.9rem; color: #666; margin-top: 5px;}
+        
+        .admin-box {
+            background: white;
+            border-radius: 20px;
+            outline: 3px dashed var(--line-color); outline-offset: -5px;
+            border: 4px solid white;
+            box-shadow: 5px 5px 15px var(--paper-shadow);
+            padding: 20px; margin-bottom: 30px;
+            transform: rotate(-0.5deg);
+        }
+        
+        .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem;}
+        .order-table th, .order-table td { border: 2px solid var(--line-color); padding: 8px; text-align: center; vertical-align: middle; background: white;}
+        .order-table th { background: var(--accent-yellow); }
+        .text-left { text-align: left !important; }
+        .item-note { background: #eee; padding: 1px 4px; border-radius: 4px; font-size: 0.8rem; color: #666; }
+        .paid-input { width: 70px; padding: 5px; border: 2px solid #ccc; border-radius: 5px; text-align: center; font-weight: bold; font-family: inherit;}
+        .status-paid { color: green; font-weight: bold; }
+        .status-debt { color: red; font-weight: bold; background: #ffe6e6;}
+        .status-change { color: blue; font-weight: bold; background: #e6f0ff;}
+        .row-fully-paid td { background-color: #e6ffe6 !important; opacity: 0.8; }
+
+        .btn { background: var(--accent-yellow); border: 2px solid var(--line-color); padding: 8px 15px; cursor: pointer; font-weight: bold; box-shadow: 2px 2px 0 var(--line-color); border-radius: 5px; font-family: inherit;}
+        .btn:active { transform: translate(1px, 1px); box-shadow: none; }
+        .btn-new-session { background: var(--accent-pink); font-size: 1.1rem; padding: 10px 20px; width: 100%; border-radius: 10px;}
+        .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
+        .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
+
+        .header-actions { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;}
+        .close-order-section { flex-grow: 1; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 15px; text-align: center; transform: rotate(1deg);}
+        .btn-close-order { background: #ff4d4d; color: white; font-size: 1.2rem; padding: 10px 30px; border: 3px solid var(--line-color); width: 100%; max-width: 400px; border-radius: 10px;}
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; margin-left: 10px;}
+        .status-open { background: var(--success-green); color: darkgreen; border: 2px solid darkgreen;}
+        .status-closed { background: var(--danger-red); color: darkred; border: 2px solid darkred;}
+
+        .summary-header-info { font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.2);}
+        .summary-list { list-style: disc; padding-left: 40px; }
+        .summary-list li { margin-bottom: 8px; font-size: 1.1rem; }
+        .summary-notes { font-size: 0.9rem; color: #666; display: block; margin-top: 2px;}
+        .history-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto;}
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd; background: white;}
+        
+        textarea, input[type="text"], input[type="time"] { 
+            width: 100%; border: 2px solid var(--line-color); padding: 8px; font-family: inherit; box-sizing: border-box;
+            background: white; border-radius: 5px; font-size: 1rem; margin-bottom: 10px;
+        }
+        textarea { height: 150px; font-family: monospace; }
+        .time-input-container { 
+            margin: 15px 0; padding: 15px; background: var(--accent-blue); border-radius: 10px; border: 2px dashed var(--line-color);
+            text-align: center; display: flex; align-items: center; justify-content: center; transform: rotate(-0.5deg);
+        }
+        input[type="time"] { width: auto; font-size: 1.2rem; padding: 5px 10px; margin-left: 10px;}
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔧 管理後台 (修正版)</h1>
+        <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg);"></div>
+        <div class="session-info">
+            <span id="current-session-id">載入中...</span>
+            <span id="status-badge" class="status-badge" style="display: none;"></span>
+        </div>
+        <div id="deadline-display" style="font-size: 1rem; color: var(--danger-red); font-weight: bold; margin-top: 10px; background: white; padding: 5px 10px; border-radius: 10px; border: 2px dashed var(--danger-red); display: inline-block; transform: rotate(1deg);"></div>
+    </header>
+
+    <div class="header-actions">
+        <div class="close-order-section">
+             <p style="margin: 5px 0; font-weight: bold;">手動結單控制</p>
+             <button id="btn-close-order" class="btn btn-close-order" disabled>載入中...</button>
+             <p id="close-order-hint" style="font-size: 0.8rem; margin: 5px 0 0 0; color: #666;">(可強制鎖定或重新開放前台點餐)</p>
+        </div>
+        <div>
+            <a href="index.html" target="_blank" class="btn" style="text-decoration: none; background: var(--accent-blue); display: inline-block; margin-top: 20px;">➡️ 前往點餐頁面</a>
+        </div>
+    </div>
+
+    <section class="admin-box" style="background: var(--accent-pink); transform: rotate(0.5deg);">
+        <h2>☎️ 打電話用：訂單統整區 (當前場次)</h2>
+        <div id="summary-header" class="summary-header-info">讀取中...</div>
+        <ul id="aggregated-order-list" class="summary-list">
+            <li>計算中...</li>
+        </ul>
+    </section>
+
+    <section class="admin-box">
+        <h2>💰 訂單明細與管理 (當前場次)</h2>
+        <table class="order-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">訂購人</th>
+                    <th style="width: 40%;">餐點明細 (數量/備註)</th>
+                    <th style="width: 10%;">應付</th>
+                    <th style="width: 15%;">已付</th>
+                    <th style="width: 10%;">狀態</th>
+                    <th style="width: 10%;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="order-table-body">
+                </tbody>
+            <tfoot>
+                <tr style="font-weight: bold; background: #f0f0f0;">
+                    <td colspan="2" style="text-align: right;">當前場次合計:</td>
+                    <td>$<span id="grand-total-due">0</span></td>
+                    <td>$<span id="grand-total-paid">0</span></td>
+                    <td colspan="2" style="color: red;">未收: $<span id="grand-total-debt">0</span></td>
+                </tr>
+            </tfoot>
+        </table>
+    </section>
+
+    <section class="admin-box" style="background: #f9f9f9; transform: rotate(-0.3deg);">
+        <h2>📜 歷史餐廳紀錄</h2>
+        <ul id="history-list" class="history-list">
+            <p>正在載入歷史紀錄...</p>
+        </ul>
+    </section>
+
+    <section class="admin-box">
+        <h2>📤 開啟新團購 & 發布菜單</h2>
+        <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。系統會自動在背景比對變更。</p>
+        <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
+        
+        <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結，方便同事看照片">
+
+        <div class="time-input-container">
+            <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
+            <input type="time" id="deadline-time-input" value="11:30">
+        </div>
+
+        <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
+    </section>
+
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -417,3 +570,5 @@
             }
         }
     </script>
+</body>
+</html>
