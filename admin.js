@@ -285,18 +285,23 @@ publishBtn.addEventListener('click', async () => {
         const comparisonSummary = generateComparisonSummary(oldMenuData, newMenuData);
         
         const dataToSave = {
-            restaurantName: newMenuData.restaurantName || '未知餐廳',
-            restaurantPhone: newMenuData.restaurantPhone || '',
-            restaurantMapUrl: mapUrl,
-            sessionId: newSessionId,
-            isOrderClosed: false,
-            deadlineTimestamp: Timestamp.fromDate(deadlineDate),
-            updatedAt: serverTimestamp(),
-            comparisonSummary: comparisonSummary
-        };
+    restaurantName: newMenuData.restaurantName || '未知餐廳',
+    restaurantPhone: newMenuData.restaurantPhone || '',
+    restaurantMapUrl: mapUrl,
+    sessionId: newSessionId,
+    isOrderClosed: false,
+    deadlineTimestamp: Timestamp.fromDate(deadlineDate),
+    updatedAt: serverTimestamp()
+    // 注意：這裡先不放 comparisonSummary
+};
 
-        if (newMenuData.menuCategories) dataToSave.menuCategories = newMenuData.menuCategories;
-        else if (newMenuData.menuItems) dataToSave.menuItems = newMenuData.menuItems;
+// 只有當 comparisonSummary 有值的時候，才把它加進去
+if (comparisonSummary) {
+    dataToSave.comparisonSummary = comparisonSummary;
+}
+
+if (newMenuData.menuCategories) dataToSave.menuCategories = newMenuData.menuCategories;
+else if (newMenuData.menuItems) dataToSave.menuItems = newMenuData.menuItems;
 
         await setDoc(doc(db, "dailyData", "menu"), dataToSave);
 
