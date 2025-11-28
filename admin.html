@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (v11.3 Grid布局)</title>
+    <title>🔧 管理後台 (v11.4 優化布局)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎樣式 --- */
@@ -13,9 +13,7 @@
             background-color: var(--bg-color);
             background-image: radial-gradient(var(--line-color) 0.5px, transparent 0.5px);
             background-size: 20px 20px; color: var(--line-color);
-            padding: 20px; 
-            /* v11.3: 移除 max-width 以適應 Grid */
-            margin: auto;
+            padding: 20px; margin: auto;
         }
         h1, h2 { text-align: center; margin-top: 0; }
         header { text-align: center; margin-bottom: 20px; }
@@ -28,32 +26,32 @@
             border: 4px solid white;
             box-shadow: 5px 5px 15px var(--paper-shadow);
             padding: 20px; margin-bottom: 30px;
-            /* v11.3: 移除預設旋轉，在 grid 中更好對齊 */
-            transform: rotate(0deg) !important; 
-            height: fit-content; /* 讓盒子高度自適應內容 */
+            height: fit-content;
         }
         
-        /* --- v11.3 新增：CSS Grid 布局 --- */
+        /* --- v11.4 CSS Grid 布局優化 --- */
         .admin-main-grid {
             display: grid;
             grid-template-columns: 1fr; /* 手機預設單欄 */
-            gap: 20px;
-            max-width: 1200px; /* 設定最大寬度以免太寬 */
+            gap: 25px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
-        /* 大螢幕 (平板橫向以上) 改為雙欄 */
+        /* 大螢幕 (平板橫向以上) 改為雙欄並排 */
         @media (min-width: 900px) {
             .admin-main-grid {
-                grid-template-columns: 300px 1fr; /* 左側固定 300px，右側自適應 */
-                align-items: start; /* 頂部對齊 */
+                grid-template-columns: 1fr 1fr; /* 兩個等寬的欄位 */
+                align-items: start;
             }
-            /* 左側邊欄容器 */
-            .sidebar-column { display: flex; flex-direction: column; gap: 20px; }
-            /* 右側主內容容器 */
-            .main-content-column { }
-            /* 底部發布區塊跨兩欄 */
-            .publish-section-container { grid-column: 1 / -1; }
+            /* 特殊區塊設定：跨越兩欄 */
+            .history-box, .publish-box {
+                grid-column: 1 / -1; /* 從第一條線跨到最後一條線 */
+            }
+            /* 讓統整區和明細區高度盡量一致 (非強制) */
+            .summary-box, .details-box {
+                 align-self: stretch; 
+            }
         }
         /* -------------------------------- */
 
@@ -103,11 +101,14 @@
         .status-closed { background: var(--danger-red); color: white; border: 2px solid darkred;}
 
         .summary-header-info { font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed rgba(0,0,0,0.2);}
-        .summary-list { list-style: disc; padding-left: 20px; margin: 0;} /* v11.3: 調整 padding */
-        .summary-list li { margin-bottom: 8px; font-size: 1rem; } /* v11.3: 調整字體大小 */
+        .summary-list { list-style: disc; padding-left: 20px; margin: 0;}
+        .summary-list li { margin-bottom: 8px; font-size: 1rem; }
         
-        /* v11.3: 限制列表高度並允許滾動 */
-        .scrollable-list-container { max-height: 300px; overflow-y: auto; padding-right: 5px;}
+        /* v11.4: 移除統整區的滾動限制，讓它完整顯示 */
+        .summary-container-wrapper { /* 不再設定 max-height */ }
+
+        /* 歷史紀錄保持滾動 */
+        .history-container-wrapper { max-height: 300px; overflow-y: auto; padding-right: 5px;}
         .history-list { list-style: none; padding: 0; margin: 0;}
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd; background: white;}
         
@@ -125,7 +126,7 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (v11.3 Grid布局)</h1>
+        <h1>🔧 管理後台 (v11.4 優化布局)</h1>
         <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg);"></div>
         <div class="session-info">
             <span id="current-session-id">載入中...</span>
@@ -155,72 +156,67 @@
 
     <div class="admin-main-grid">
         
-        <div class="sidebar-column">
-            <section class="admin-box" style="background: var(--accent-pink);">
-                <h2>☎️ 訂單統整 (打電話用)</h2>
-                <div id="summary-header" class="summary-header-info">讀取中...</div>
-                <div class="scrollable-list-container">
-                    <ul id="aggregated-order-list" class="summary-list">
-                        <li>計算中...</li>
-                    </ul>
-                </div>
-            </section>
+        <section class="admin-box summary-box" style="background: var(--accent-pink);">
+            <h2>☎️ 訂單統整 (打電話用)</h2>
+            <div id="summary-header" class="summary-header-info">讀取中...</div>
+            <div class="summary-container-wrapper">
+                <ul id="aggregated-order-list" class="summary-list">
+                    <li>計算中...</li>
+                </ul>
+            </div>
+        </section>
 
-            <section class="admin-box" style="background: #f9f9f9;">
-                <h2>📜 歷史餐廳紀錄</h2>
-                <div class="scrollable-list-container" style="max-height: 400px;">
-                    <ul id="history-list" class="history-list">
-                        <p>正在載入歷史紀錄...</p>
-                    </ul>
-                </div>
-            </section>
-        </div>
-
-        <div class="main-content-column">
-            <section class="admin-box">
-                <h2>💰 訂單明細與管理 (當前場次)</h2>
-                <div style="overflow-x: auto;"> <table class="order-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 15%;">訂購人</th>
-                                <th style="width: 40%;">餐點明細 (數量/備註)</th>
-                                <th style="width: 10%;">應付</th>
-                                <th style="width: 15%;">已付</th>
-                                <th style="width: 10%;">狀態</th>
-                                <th style="width: 10%;">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="order-table-body">
-                            </tbody>
-                        <tfoot>
-                            <tr style="font-weight: bold; background: #f0f0f0;">
-                                <td colspan="2" style="text-align: right;">當前場次合計:</td>
-                                <td>$<span id="grand-total-due">0</span></td>
-                                <td>$<span id="grand-total-paid">0</span></td>
-                                <td colspan="2" style="color: red;">未收: $<span id="grand-total-debt">0</span></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </section>
-        </div>
+        <section class="admin-box details-box">
+            <h2>💰 訂單明細與管理 (當前場次)</h2>
+            <div style="overflow-x: auto;">
+                <table class="order-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">訂購人</th>
+                            <th style="width: 40%;">餐點明細 (數量/備註)</th>
+                            <th style="width: 10%;">應付</th>
+                            <th style="width: 15%;">已付</th>
+                            <th style="width: 10%;">狀態</th>
+                            <th style="width: 10%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="order-table-body">
+                        </tbody>
+                    <tfoot>
+                        <tr style="font-weight: bold; background: #f0f0f0;">
+                            <td colspan="2" style="text-align: right;">當前場次合計:</td>
+                            <td>$<span id="grand-total-due">0</span></td>
+                            <td>$<span id="grand-total-paid">0</span></td>
+                            <td colspan="2" style="color: red;">未收: $<span id="grand-total-debt">0</span></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
         
-        <div class="publish-section-container">
-            <section class="admin-box">
-                <h2>📤 開啟新團購 & 發布菜單</h2>
-                <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。</p>
-                <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
-                
-                <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結">
+        <section class="admin-box history-box" style="background: #f9f9f9;">
+            <h2>📜 歷史餐廳紀錄</h2>
+            <div class="history-container-wrapper">
+                <ul id="history-list" class="history-list">
+                    <p>正在載入歷史紀錄...</p>
+                </ul>
+            </div>
+        </section>
 
-                <div class="time-input-container">
-                    <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
-                    <input type="time" id="deadline-time-input" value="11:30">
-                </div>
+        <section class="admin-box publish-box">
+            <h2>📤 開啟新團購 & 發布菜單</h2>
+            <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。</p>
+            <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
+            
+            <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結">
 
-                <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
-            </section>
-        </div>
+            <div class="time-input-container">
+                <label for="deadline-time-input" style="font-weight: bold; font-size: 1.1rem;">⏰ 設定今日截止時間:</label>
+                <input type="time" id="deadline-time-input" value="11:30">
+            </div>
+
+            <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
+        </section>
 
     </div> <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
