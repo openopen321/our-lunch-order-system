@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 v9.1 (穩定回退版)</title>
+    <title>🔧 管理後台 (修正版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /* --- 基礎樣式 (維持不變) --- */
         :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #d9534f; --success-green: #c7edb6; --warning-orange: #ffeeba; --paper-shadow: rgba(0, 0, 0, 0.15); }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
@@ -44,6 +45,7 @@
         .btn-new-session { background: var(--accent-pink); font-size: 1.1rem; padding: 10px 20px; width: 100%; border-radius: 10px;}
         .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
         .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
 
         .header-actions { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;}
         .close-order-section { flex-grow: 1; padding: 15px; background: #ffe6e6; border: 3px dashed var(--line-color); border-radius: 15px; text-align: center; transform: rotate(1deg);}
@@ -73,7 +75,7 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 v9.1 (穩定回退版)</h1>
+        <h1>🔧 管理後台 (修正版)</h1>
         <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg);"></div>
         <div class="session-info">
             <span id="current-session-id">載入中...</span>
@@ -86,7 +88,7 @@
         <div class="close-order-section">
              <p style="margin: 5px 0; font-weight: bold;">手動結單控制</p>
              <button id="btn-close-order" class="btn btn-close-order" disabled>載入中...</button>
-             <p style="font-size: 0.8rem; margin: 5px 0 0 0; color: #666;">(可強制鎖定或重新開放前台點餐)</p>
+             <p id="close-order-hint" style="font-size: 0.8rem; margin: 5px 0 0 0; color: #666;">(可強制鎖定或重新開放前台點餐)</p>
         </div>
         <div>
             <a href="index.html" target="_blank" class="btn" style="text-decoration: none; background: var(--accent-blue); display: inline-block; margin-top: 20px;">➡️ 前往點餐頁面</a>
@@ -172,6 +174,7 @@
         const currentSessionIdDisplay = document.getElementById('current-session-id');
         const statusBadge = document.getElementById('status-badge');
         const btnCloseOrder = document.getElementById('btn-close-order');
+        const closeOrderHint = document.getElementById('close-order-hint');
         const summaryHeader = document.getElementById('summary-header');
         const aggregatedListEl = document.getElementById('aggregated-order-list');
         const orderTableBody = document.getElementById('order-table-body');
@@ -189,6 +192,8 @@
         let unsubscribeOrders = null;
         let currentMenuData = null;
         let isOrderClosed = false;
+        let deadlineDate = null;
+        let checkTimer = null;
 
         // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
@@ -200,28 +205,17 @@
                 
                 isOrderClosed = currentMenuData.isOrderClosed === true;
                 statusBadge.style.display = 'inline-block';
-                btnCloseOrder.disabled = false;
 
                 if (currentMenuData.deadlineTimestamp) {
-                    const deadlineDate = currentMenuData.deadlineTimestamp.toDate();
+                    deadlineDate = currentMenuData.deadlineTimestamp.toDate();
                     deadlineDisplay.textContent = `(今日截止: ${deadlineDate.toLocaleString('zh-TW', {hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'})})`;
                 } else {
+                    deadlineDate = null;
                     deadlineDisplay.textContent = '(未設定截止時間)';
                 }
-
-                if (isOrderClosed) {
-                    statusBadge.textContent = '⛔ 已手動結單';
-                    statusBadge.className = 'status-badge status-closed';
-                    btnCloseOrder.textContent = '✅ 已結單 (點擊重新開放)';
-                    btnCloseOrder.style.background = '#ccc';
-                    btnCloseOrder.style.color = '#333';
-                } else {
-                    statusBadge.textContent = '🟢 手動開放中';
-                    statusBadge.className = 'status-badge status-open';
-                    btnCloseOrder.textContent = '🔴 鎖定結單 (停止點餐)';
-                    btnCloseOrder.style.background = '#ff4d4d';
-                    btnCloseOrder.style.color = 'white';
-                }
+                
+                // 開始定期檢查狀態
+                startStatusCheck();
                 
                 let dateStr = '未知日期';
                 if (currentMenuData.updatedAt) {
@@ -237,18 +231,68 @@
 
                 setupOrderListener(currentSessionId);
             } else {
+                // 無菜單時的狀態
+                if (checkTimer) clearInterval(checkTimer);
                 adminRestaurantName.textContent = '尚未發布';
                 summaryHeader.textContent = '等待發布菜單...';
                 statusBadge.style.display = 'none';
                 btnCloseOrder.disabled = true;
+                btnCloseOrder.textContent = '載入中...';
+                closeOrderHint.textContent = '(請先發布菜單)';
                 deadlineDisplay.textContent = '';
                 adminMapUrlInput.value = '';
+                deadlineDate = null;
             }
         });
 
+        // 新增：定期檢查狀態的函數
+        function startStatusCheck() {
+            if (checkTimer) clearInterval(checkTimer);
+            updateStatusUI(); // 立即執行一次
+            checkTimer = setInterval(updateStatusUI, 1000); // 之後每秒檢查一次
+        }
+
+        // 新增：更新 UI 狀態的核心邏輯
+        function updateStatusUI() {
+            let isTimeUp = false;
+            if (deadlineDate) {
+                const now = new Date();
+                if (now >= deadlineDate) isTimeUp = true;
+            }
+
+            if (isTimeUp) {
+                // 情況 1: 時間到
+                statusBadge.textContent = '⛔ 時間已到 (已截止)';
+                statusBadge.className = 'status-badge status-closed';
+                btnCloseOrder.textContent = '🕒 時間已到，無法手動操作';
+                btnCloseOrder.disabled = true; // 禁用按鈕
+                btnCloseOrder.style.background = '#ccc';
+                btnCloseOrder.style.color = '#333';
+                closeOrderHint.textContent = '(已超過截止時間，系統自動鎖定)';
+            } else if (isOrderClosed) {
+                // 情況 2: 時間未到，但手動結單
+                statusBadge.textContent = '⛔ 已手動結單';
+                statusBadge.className = 'status-badge status-closed';
+                btnCloseOrder.textContent = '✅ 已結單 (點擊重新開放)';
+                btnCloseOrder.disabled = false; // 可以操作
+                btnCloseOrder.style.background = '#ccc';
+                btnCloseOrder.style.color = '#333';
+                closeOrderHint.textContent = '(可點擊按鈕重新開放前台點餐)';
+            } else {
+                // 情況 3: 時間未到，且開放中
+                statusBadge.textContent = '🟢 手動開放中';
+                statusBadge.className = 'status-badge status-open';
+                btnCloseOrder.textContent = '🔴 鎖定結單 (停止點餐)';
+                btnCloseOrder.disabled = false; // 可以操作
+                btnCloseOrder.style.background = '#ff4d4d';
+                btnCloseOrder.style.color = 'white';
+                closeOrderHint.textContent = '(點擊按鈕可強制鎖定前台點餐)';
+            }
+        }
+
         // --- 手動結單按鈕點擊事件 ---
         btnCloseOrder.addEventListener('click', async () => {
-            if (!currentSessionId) return;
+            if (!currentSessionId || btnCloseOrder.disabled) return; // 增加 disabled 檢查
             const newStatus = !isOrderClosed;
             const confirmMsg = newStatus ? "確定要「手動結單」嗎？前台將無法再點餐。" : "確定要「重新開放」點餐嗎？";
             if (confirm(confirmMsg)) {
@@ -464,6 +508,7 @@
             grandTotalDebtEl.textContent = debt > 0 ? debt : 0;
         }
 
+        // 將 deleteOrder 和 updatePaidAmount 掛載到 window 物件
         window.deleteOrder = async (orderId, userName) => {
             if (confirm(`確定要刪除「${userName}」的訂單嗎？此動作無法復原。`)) {
                 try { await deleteDoc(doc(db, "todayOrders", orderId)); } 
