@@ -379,12 +379,12 @@
         let unsubscribeOrders = null;
         let isManualClosed = false;
         let deadlineDate = null;
-        let checkTimeInterval = null;
+        // let checkTimeInterval = null; // v11.1 移除：前台不需要定時檢查了
         let countdownInterval = null;
         let priceChangeMap = new Map(); 
         let globalItemIndex = 0;
 
-        // --- A. 監聽菜單資訊與狀態 (維持不變) ---
+        // --- A. 監聽菜單資訊與狀態 ---
         onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -417,11 +417,9 @@
                 isManualClosed = data.isOrderClosed === true;
                 
                 startCountdown();
-                checkFormLockState();
+                // v11.1 核心修改：只根據手動狀態決定是否鎖定
+                updateFormState(isManualClosed);
                 
-                if (checkTimeInterval) clearInterval(checkTimeInterval);
-                checkTimeInterval = setInterval(checkFormLockState, 30000);
-
                 processPriceChanges(data.comparisonSummary);
                 renderMenu(data);
                 
@@ -438,12 +436,12 @@
                 menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
                 deadlineBanner.style.display = 'none';
                 mapLinkContainer.innerHTML = '';
-                if (checkTimeInterval) clearInterval(checkTimeInterval);
                 if (countdownInterval) clearInterval(countdownInterval);
+                updateFormState(true); // 無菜單時鎖定
             }
         });
 
-        // 倒數計時功能 (維持不變)
+        // 倒數計時功能 (只負責顯示)
         function startCountdown() {
             if (countdownInterval) clearInterval(countdownInterval);
             if (!deadlineDate) { countdownTimerDisplay.textContent = '---'; return; }
@@ -454,7 +452,6 @@
                     countdownTimerDisplay.textContent = '⛔ 已截止';
                     countdownTimerDisplay.classList.add('countdown-ended');
                     clearInterval(countdownInterval);
-                    checkFormLockState();
                 } else {
                     const hours = Math.floor(diff / (1000 * 60 * 60));
                     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -476,21 +473,11 @@
             }
         }
 
-        function checkFormLockState() {
-            let isTimeUp = false;
-            if (deadlineDate) {
-                const now = new Date();
-                if (now >= deadlineDate) isTimeUp = true;
-            }
-            const shouldLock = isManualClosed || isTimeUp;
-            updateFormState(shouldLock, isTimeUp);
-        }
-
-        function updateFormState(isLocked, isTimeUp) {
+        // v11.1 核心修改：鎖定狀態只看 isLocked (即 isManualClosed)
+        function updateFormState(isLocked) {
             if (isLocked) {
                 mainBody.classList.add('order-closed');
-                if (isTimeUp) submitBtn.textContent = '⛔ 時間已到，停止點餐';
-                else submitBtn.textContent = '⛔ 已手動結單，停止點餐';
+                submitBtn.textContent = '⛔ 已手動結單，停止點餐';
                 submitBtn.disabled = true;
                 usernameInput.disabled = true;
                 closeCart(); // 結單時關閉購物車
@@ -725,9 +712,10 @@
 
         // v11.0 修改：按鈕狀態檢查邏輯
         function checkSubmitButtonState() {
+            // v11.1 修改：只檢查是否有手動結單樣式
             if (mainBody.classList.contains('order-closed')) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = submitBtn.textContent.includes('時間到') ? '⛔ 時間已到，停止點餐' : '⛔ 已手動結單，停止點餐';
+                submitBtn.textContent = '⛔ 已手動結單，停止點餐';
                 return;
             }
 
