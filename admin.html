@@ -115,7 +115,7 @@
         .summary-list { list-style: disc; padding-left: 20px; margin: 0;}
         .summary-list li { margin-bottom: 8px; font-size: 1rem; }
         
-        /* --- v14.1 修改：歷史紀錄改為矩陣 (卡片) 排列 --- */
+        /* --- v14.2 修改：歷史紀錄改為矩陣 (卡片) 排列 --- */
         .history-container-wrapper {
             max-height: 450px; /* 稍微增加高度 */
             overflow-y: auto;
@@ -148,18 +148,11 @@
             box-shadow: 7px 7px 5px rgba(0,0,0,0.15);
         }
 
-        .history-info {
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .history-info strong {
-            font-size: 1.1rem; display: block; margin-bottom: 5px;
-        }
-
         /* 讓載入按鈕填滿卡片寬度 */
         .history-item .btn-load {
             width: 100%;
             text-align: center;
+            margin-top: auto; /* 確保按鈕在底部 */
         }
         /* ------------------------------------------ */
         
@@ -362,7 +355,7 @@
                 // 綁定點擊事件
                 btn.addEventListener('click', () => {
                     loadSelectedSessionData(doc.id);
-                    updateActiveTabState(doc.id); // v14.2 修正這裡的語法錯誤
+                    updateActiveTabState(doc.id); // v14.2 修正這裡的語法錯誤 (移除空白)
                 });
 
                 sessionTabsContainer.appendChild(btn);
@@ -582,7 +575,7 @@
         });
 
 
-        // --- C. 監聽歷史紀錄 (維持不變) ---
+        // --- C. 監聽歷史紀錄 (v14.2 矩陣版 HTML) ---
         const historyQ = query(collection(db, 'restaurantHistory'), orderBy('lastUsed', 'desc'));
         onSnapshot(historyQ, (snapshot) => {
             historyListEl.innerHTML = '';
@@ -591,14 +584,14 @@
                 const data = doc.data();
                 const li = document.createElement('li');
                 li.classList.add('history-item');
-                // v14.1: 修改為卡片式結構
+                // v14.2: 卡片式結構 HTML
                 li.innerHTML = `
-                    <div class="history-info">
-                        <strong>${data.restaurantName}</strong>
+                    <div class="history-info" style="text-align: center; margin-bottom: 15px;">
+                        <strong style="font-size: 1.1rem; display: block; margin-bottom: 5px;">${data.restaurantName}</strong>
                         <span style="font-size: 0.9rem;">(點過 ${data.orderCount || 1} 次)</span><br>
                         <span style="font-size: 0.9rem;">電話: ${data.restaurantPhone || '無'}</span>
                     </div>
-                    <button class="btn btn-load">載入菜單</button>
+                    <button class="btn btn-load" style="width: 100%;">載入菜單</button>
                 `;
                 li.querySelector('.btn-load').addEventListener('click', () => {
                     const jsonToLoad = {
