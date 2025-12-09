@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v12.0 個人化版)</title>
+    <title>✏️ 今天吃什麼？(v13.0 美食廣場)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 基礎樣式 (維持 v11.3) --- */
+        /* --- 基礎樣式 (維持 v12.0) --- */
         :root {
             --bg-color: #FFFBE6; --line-color: #4A3F35;
             --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
@@ -27,17 +27,55 @@
         }
         h1, h2, h3 { font-weight: normal; text-align: center; margin: 10px 0; }
         
-        .hand-drawn-box {
+        /* v13.0: 通用容器樣式 */
+        .container-box {
             background: white;
             border-radius: 20px;
             outline: 3px dashed var(--line-color); outline-offset: -5px;
             border: 4px solid white;
             box-shadow: 5px 5px 15px var(--paper-shadow);
             padding: 20px; margin-bottom: 30px;
-            transform: rotate(-0.5deg);
             transition: all 0.3s;
         }
+        .hand-drawn-box { @extend .container-box; transform: rotate(-0.5deg); }
         
+        /* --- v13.0 新增：大廳 (Lobby) 樣式 --- */
+        #lobby-section { display: block; } /* 預設顯示大廳 */
+        #ordering-section { display: none; } /* 預設隱藏點餐介面 */
+
+        .lobby-title { text-align: center; font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; color: var(--line-color); }
+        .restaurant-cards-container { display: flex; flex-direction: column; gap: 20px; }
+        
+        .restaurant-card {
+            background: white; border: 3px solid var(--line-color); border-radius: 20px;
+            padding: 20px; cursor: pointer; position: relative; overflow: hidden;
+            box-shadow: 5px 5px 0 rgba(0,0,0,0.1); transition: all 0.2s;
+            transform: rotate(-0.5deg);
+        }
+        .restaurant-card:hover { transform: scale(1.02) rotate(0deg); box-shadow: 7px 7px 10px rgba(0,0,0,0.15); }
+        .restaurant-card:active { transform: scale(0.98); box-shadow: 2px 2px 0 rgba(0,0,0,0.1); }
+        .restaurant-card h3 { margin: 0 0 10px 0; font-size: 1.4rem; text-align: left;}
+        .restaurant-card-info { font-size: 0.95rem; color: #666; margin-bottom: 5px; display: flex; align-items: center;}
+        .restaurant-card-badge { 
+            position: absolute; top: 15px; right: 15px; 
+            padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9rem;
+            border: 2px solid var(--line-color); transform: rotate(2deg);
+        }
+        .badge-open { background: var(--success-green); color: white; }
+        .badge-closed { background: var(--danger-red); color: white; }
+        .no-sessions-msg { text-align: center; padding: 30px; font-size: 1.2rem; color: #888; font-style: italic; background: rgba(255,255,255,0.6); border-radius: 20px; border: 3px dashed #ccc;}
+        
+        /* 返回大廳按鈕 */
+        .back-to-lobby-btn {
+            display: inline-block; margin-bottom: 15px; padding: 8px 15px;
+            background: var(--accent-blue); border: 2px solid var(--line-color);
+            border-radius: 10px; font-weight: bold; cursor: pointer;
+            box-shadow: 3px 3px 0 var(--line-color); font-family: inherit;
+        }
+        .back-to-lobby-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--line-color); }
+
+
+        /* --- 以下為原 v12.0 點餐介面樣式 --- */
         .status-section { background: var(--accent-green) !important; transform: rotate(-0.3deg); }
 
         header { text-align: center; margin-bottom: 20px; }
@@ -254,7 +292,6 @@
         .cart-overlay.show { opacity: 1; pointer-events: auto; }
         body.order-closed .cart-fab { display: none; }
 
-        /* --- v12.0 新增：個人化歡迎區塊樣式 --- */
         .personal-welcome-section {
             display: none; /* 預設隱藏 */
             background: var(--accent-blue); border-radius: 20px;
@@ -274,41 +311,52 @@
 
     <header>
         <h1>✏️ 今天吃什麼？</h1>
-        <div id="restaurant-name-display" class="restaurant-name"></div>
-        <div id="restaurant-phone" style="font-size: 0.95rem; margin-bottom: 5px;"></div>
-        <div id="map-link-container"></div>
-        <div id="menu-time-info" class="menu-time-info" style="margin-top: 10px;"></div>
+        <button id="back-to-lobby-btn" class="back-to-lobby-btn" style="display: none;">🏠 返回大廳 (選擇其他餐廳)</button>
     </header>
 
-    <section id="deadline-banner" class="hand-drawn-box deadline-banner">
-        <h2 class="deadline-title">⏰ 點餐截止時間</h2>
-        <div id="deadline-full-date" class="deadline-full-date">載入中...</div>
-        <div id="countdown-timer" class="countdown-timer">計算中...</div>
-    </section>
-
-    <section id="personal-welcome-section" class="personal-welcome-section">
-        <p id="welcome-text" class="welcome-text"></p>
-        <div id="last-order-info" class="last-order-info">正在查詢您上次在這家餐廳的點餐紀錄...</div>
-    </section>
-
-    <main id="menu-section" class="hand-drawn-box menu-section">
-        <h2>今日菜單 Menu</h2>
-        <div id="menu-list-container">
-            <p style="text-align: center;">正在載入菜單...</p>
+    <section id="lobby-section">
+        <h2 class="lobby-title">👇 今日開團餐廳 👇</h2>
+        <div id="restaurant-cards-container" class="restaurant-cards-container">
+            <p class="no-sessions-msg">目前沒有正在進行的團購...</p>
         </div>
-    </main>
-
-    <section class="hand-drawn-box status-section">
-        <div class="status-header">
-            <h2>點餐狀況 (本場次)</h2>
-            <span style="font-size: 0.9rem;">(<span id="total-people-count">0</span> 人已點)</span>
-        </div>
-        <ul id="live-status-list" class="status-list">
-            <p style="text-align: center; opacity: 0.7;">目前還沒有人點餐...</p>
-        </ul>
     </section>
 
-    <div id="cart-fab" class="cart-fab">
+    <div id="ordering-section">
+        <div id="restaurant-name-display" class="restaurant-name" style="text-align: center;"></div>
+        <div id="restaurant-phone" style="font-size: 0.95rem; margin-bottom: 5px; text-align: center;"></div>
+        <div id="map-link-container" style="text-align: center;"></div>
+        <div id="menu-time-info" class="menu-time-info" style="margin-top: 10px; text-align: center;"></div>
+
+        <section id="deadline-banner" class="hand-drawn-box deadline-banner">
+            <h2 class="deadline-title">⏰ 點餐截止時間</h2>
+            <div id="deadline-full-date" class="deadline-full-date">載入中...</div>
+            <div id="countdown-timer" class="countdown-timer">計算中...</div>
+        </section>
+
+        <section id="personal-welcome-section" class="personal-welcome-section">
+            <p id="welcome-text" class="welcome-text"></p>
+            <div id="last-order-info" class="last-order-info">正在查詢您上次在這家餐廳的點餐紀錄...</div>
+        </section>
+
+        <main id="menu-section" class="hand-drawn-box menu-section">
+            <h2>今日菜單 Menu</h2>
+            <div id="menu-list-container">
+                <p style="text-align: center;">正在載入菜單...</p>
+            </div>
+        </main>
+
+        <section class="hand-drawn-box status-section">
+            <div class="status-header">
+                <h2>點餐狀況 (本場次)</h2>
+                <span style="font-size: 0.9rem;">(<span id="total-people-count">0</span> 人已點)</span>
+            </div>
+            <ul id="live-status-list" class="status-list">
+                <p style="text-align: center; opacity: 0.7;">目前還沒有人點餐...</p>
+            </ul>
+        </section>
+    </div>
+
+    <div id="cart-fab" class="cart-fab" style="display: none;">
         <span class="cart-icon">🛒</span>
         <span id="cart-count-badge" class="cart-count-badge" data-count="0">0</span>
     </div>
@@ -365,7 +413,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        // v12.0: 加入 limit 函數用於查詢最後一筆訂單
         import { getFirestore, doc, onSnapshot, collection, addDoc, query, orderBy, serverTimestamp, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -381,7 +428,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // DOM
+        // DOM - 大廳相關
+        const lobbySection = document.getElementById('lobby-section');
+        const orderingSection = document.getElementById('ordering-section');
+        const restaurantCardsContainer = document.getElementById('restaurant-cards-container');
+        const backToLobbyBtn = document.getElementById('back-to-lobby-btn');
+
+        // DOM - 點餐介面相關
         const mainBody = document.getElementById('main-body');
         const menuContainer = document.getElementById('menu-list-container');
         const restaurantNameDisplay = document.getElementById('restaurant-name-display');
@@ -395,7 +448,6 @@
         const deadlineFullDateDisplay = document.getElementById('deadline-full-date');
         const countdownTimerDisplay = document.getElementById('countdown-timer');
 
-        // v12.0 個人化歡迎區塊 DOM
         const personalWelcomeSection = document.getElementById('personal-welcome-section');
         const welcomeText = document.getElementById('welcome-text');
         const lastOrderInfo = document.getElementById('last-order-info');
@@ -419,10 +471,14 @@
         const btnBackToCart = document.getElementById('btn-back-to-cart');
         const btnSubmitOrder = document.getElementById('btn-submit-order');
 
+        // 應用程式狀態
+        let appState = 'lobby'; // 'lobby' or 'ordering'
+
+        // 點餐資料變數 (每次進入餐廳時會重置)
         let selectedAvatarChar = null;
         let cartItems = []; 
-        let currentSessionId = null;
-        let currentRestaurantName = null; // v12.0 用於查詢歷史紀錄
+        let currentSessionId = null; // 重要：當前選中的場次 ID
+        let currentRestaurantName = null;
         let unsubscribeOrders = null;
         let isManualClosed = false;
         let deadlineDate = null;
@@ -431,7 +487,171 @@
         let globalItemIndex = 0;
         let currentCartStep = 1;
 
-        // --- v12.0 新增：使用者偏好設定函數 (LocalStorage) ---
+        // --- v13.0 A. 大廳邏輯：監聽活躍場次 ---
+        // 監聽 activeSessions 集合，依建立時間倒序排列
+        const qActiveSessions = query(collection(db, "activeSessions"), orderBy("createdAt", "desc"));
+        onSnapshot(qActiveSessions, (snapshot) => {
+            if (appState === 'ordering') return; // 如果正在點餐，不更新大廳，避免干擾
+
+            restaurantCardsContainer.innerHTML = '';
+            if (snapshot.empty) {
+                restaurantCardsContainer.innerHTML = '<p class="no-sessions-msg">目前沒有正在進行的團購...</p>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                createRestaurantCard(doc.id, data);
+            });
+        });
+
+        // 建立餐廳卡片
+        function createRestaurantCard(docId, data) {
+            const card = document.createElement('div');
+            card.classList.add('restaurant-card');
+
+            // 計算截止狀態
+            let deadlineStatusHtml = '';
+            let isClosed = data.isOrderClosed;
+            if (data.deadlineTimestamp) {
+                const deadline = data.deadlineTimestamp.toDate();
+                const now = new Date();
+                const timeStr = deadline.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                if (now >= deadline) {
+                    isClosed = true;
+                    deadlineStatusHtml = `<span style="color: var(--danger-red);">⏰ 已於 ${timeStr} 截止</span>`;
+                } else {
+                    deadlineStatusHtml = `<span>⏰ 今日 ${timeStr} 截止</span>`;
+                }
+            } else {
+                deadlineStatusHtml = `<span>⏰ 未設定截止時間</span>`;
+            }
+
+            const badgeClass = isClosed ? 'badge-closed' : 'badge-open';
+            const badgeText = isClosed ? '已截止' : '開放中';
+
+            card.innerHTML = `
+                <span class="restaurant-card-badge ${badgeClass}">${badgeText}</span>
+                <h3>🍽️ ${data.restaurantName}</h3>
+                <div class="restaurant-card-info">📞 ${data.restaurantPhone || '(無電話)'}</div>
+                <div class="restaurant-card-info">${deadlineStatusHtml}</div>
+            `;
+
+            // 點擊卡片進入點餐介面
+            card.addEventListener('click', () => {
+                switchToOrderingState(docId, data);
+            });
+
+            restaurantCardsContainer.appendChild(card);
+        }
+
+        // --- v13.0 B. 切換到點餐狀態 (載入單一場次資料) ---
+        function switchToOrderingState(docId, data) {
+            appState = 'ordering';
+            lobbySection.style.display = 'none';
+            orderingSection.style.display = 'block';
+            backToLobbyBtn.style.display = 'inline-block';
+            cartFab.style.display = 'flex'; // 顯示購物車按鈕
+
+            // 重置並載入該場次的資料
+            reset orderingSessionData();
+            currentSessionId = data.sessionId;
+            currentRestaurantName = data.restaurantName;
+
+            // 更新介面顯示
+            restaurantNameDisplay.textContent = data.restaurantName;
+            restaurantPhoneDisplay.textContent = data.restaurantPhone ? `📞 電話: ${data.restaurantPhone}` : '';
+            
+            if (data.restaurantMapUrl) {
+                mapLinkContainer.innerHTML = `<a href="${data.restaurantMapUrl}" target="_blank" class="map-link-btn">🗺️ 去 Google Maps 看照片</a>`;
+            } else {
+                mapLinkContainer.innerHTML = '';
+            }
+
+            let timeInfoHtml = '';
+            if (data.createdAt) {
+                const createTime = new Date(data.createdAt.seconds * 1000).toLocaleString('zh-TW', {hour: '2-digit', minute:'2-digit'});
+                timeInfoHtml += `開團時間: ${createTime}`;
+            }
+            menuTimeInfoDisplay.innerHTML = timeInfoHtml;
+
+            if (data.deadlineTimestamp) {
+                deadlineDate = data.deadlineTimestamp.toDate();
+                deadlineFullDateDisplay.textContent = deadlineDate.toLocaleString('zh-TW', {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false});
+                deadlineBanner.style.display = 'block';
+            } else {
+                deadlineDate = null;
+                deadlineFullDateDisplay.textContent = '(未設定)';
+                deadlineBanner.style.display = 'none';
+            }
+
+            isManualClosed = data.isOrderClosed === true;
+            startCountdown();
+            updateFormState(isManualClosed);
+            
+            // 不再需要 processPriceChanges，因為是全新場次
+            renderMenu(data);
+            
+            if (currentSessionId) {
+                setupOrderListener(currentSessionId);
+            }
+            
+            updateCartUI();
+
+            // 嘗試讀取使用者記憶
+            const userPrefs = loadUserPreferences();
+            if (userPrefs && userPrefs.name && userPrefs.avatar) {
+                usernameInput.value = userPrefs.name;
+                const avatarEl = Array.from(document.querySelectorAll('.avatar-option')).find(el => el.textContent === userPrefs.avatar);
+                if (avatarEl) {
+                    selectAvatar(avatarEl, userPrefs.avatar);
+                }
+                checkAndDisplayLastOrder(userPrefs.name, currentRestaurantName);
+            } else {
+                personalWelcomeSection.style.display = 'none';
+            }
+        }
+
+        // --- v13.0 C. 切換回大廳狀態 ---
+        backToLobbyBtn.addEventListener('click', () => {
+            switchToLobbyState();
+        });
+
+        function switchToLobbyState() {
+            appState = 'lobby';
+            lobbySection.style.display = 'block';
+            orderingSection.style.display = 'none';
+            backToLobbyBtn.style.display = 'none';
+            cartFab.style.display = 'none'; // 隱藏購物車按鈕
+            closeCart(); // 確保購物車關閉
+            resetOrderingSessionData(); // 清空點餐資料
+        }
+
+        // 重置點餐相關資料
+        function resetOrderingSessionData() {
+            currentSessionId = null;
+            currentRestaurantName = null;
+            selectedAvatarChar = null;
+            cartItems = [];
+            priceChangeMap.clear();
+            globalItemIndex = 0;
+            currentCartStep = 1;
+            isManualClosed = false;
+            deadlineDate = null;
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (unsubscribeOrders) unsubscribeOrders();
+            
+            menuContainer.innerHTML = '<p style="text-align: center;">正在載入菜單...</p>';
+            liveStatusList.innerHTML = '<p style="text-align: center;">讀取中...</p>';
+            totalPeopleCountSpan.textContent = '0';
+            personalWelcomeSection.style.display = 'none';
+            usernameInput.value = '';
+            document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
+            updateCartUI();
+        }
+
+
+        // --- 使用者偏好設定函數 (LocalStorage) ---
         const STORAGE_KEY_USER = 'lunchOrderUserPrefs';
 
         function saveUserPreferences(name, avatar) {
@@ -452,7 +672,7 @@
             return null;
         }
 
-        // --- v12.0 新增：查詢並顯示上次訂單紀錄 ---
+        // --- 查詢並顯示上次訂單紀錄 ---
         async function checkAndDisplayLastOrder(userName, restaurantName) {
             if (!userName || !restaurantName) return;
 
@@ -460,16 +680,9 @@
             personalWelcomeSection.style.display = 'block';
             lastOrderInfo.innerHTML = '正在查詢您上次在這家餐廳的點餐紀錄...';
 
-            // 查詢該使用者在這家餐廳的最近一筆訂單 (跨場次查詢)
-            // 注意：這裡假設 "todayOrders" 集合包含了所有歷史訂單。
-            // 如果未來訂單量大，可能需要建立專門的歷史紀錄索引或集合。
             const q = query(
                 collection(db, "todayOrders"),
                 where("userName", "==", userName),
-                // 我們無法直接 where 餐廳名稱，因為訂單裡沒存。
-                // 這是一個簡化實作，我們只查這個人的最後一筆訂單，並假設它可能是在這家餐廳點的。
-                // 若要精確查詢「這家餐廳」的歷史，需要在訂單資料中加入 restaurantName 欄位。
-                // v12.0 先採用簡化做法：顯示最近一次的點餐。
                 orderBy("orderTime", "desc"),
                 limit(1)
             );
@@ -478,12 +691,6 @@
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     const lastOrder = querySnapshot.docs[0].data();
-                    
-                    // 為了讓體驗更好，我們可以在這裡做一個簡單的判斷：
-                    // 雖然訂單裡沒有存餐廳名，但我們可以比對訂單裡的菜名是否在今日菜單中。
-                    // 如果大部分都在，那很可能就是這家餐廳的歷史紀錄。
-                    // (這裡先做最簡單的顯示，不做複雜比對)
-
                     let itemsHtml = lastOrder.items.map(item => {
                         const qtyHtml = item.quantity > 1 ? ` x${item.quantity}` : '';
                         const noteHtml = item.note ? ` (${item.note})` : '';
@@ -500,82 +707,8 @@
             } catch (error) {
                 console.error("Error fetching last order:", error);
                 lastOrderInfo.innerHTML = '抱歉，查詢歷史紀錄時發生錯誤。';
-                // 如果是因為需要複合索引而失敗，在 console 裡會看到連結。
-                // 在開發階段，可以先忽略這個錯誤，或者手動在 Firebase Console 建立索引。
             }
         }
-
-
-        // --- A. 監聽菜單資訊與狀態 ---
-        onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                currentRestaurantName = data.restaurantName || '今日餐廳'; // v12.0 紀錄餐廳名稱
-                restaurantNameDisplay.textContent = currentRestaurantName;
-                restaurantPhoneDisplay.textContent = data.restaurantPhone ? `📞 電話: ${data.restaurantPhone}` : '';
-                
-                if (data.restaurantMapUrl) {
-                    mapLinkContainer.innerHTML = `<a href="${data.restaurantMapUrl}" target="_blank" class="map-link-btn">🗺️ 去 Google Maps 看照片</a>`;
-                } else {
-                    mapLinkContainer.innerHTML = '';
-                }
-
-                let timeInfoHtml = '';
-                if (data.updatedAt) {
-                    const updateTime = new Date(data.updatedAt.seconds * 1000).toLocaleString('zh-TW', {hour: '2-digit', minute:'2-digit'});
-                    timeInfoHtml += `菜單更新於: ${updateTime}`;
-                }
-                menuTimeInfoDisplay.innerHTML = timeInfoHtml;
-
-                if (data.deadlineTimestamp) {
-                    deadlineDate = data.deadlineTimestamp.toDate();
-                    deadlineFullDateDisplay.textContent = deadlineDate.toLocaleString('zh-TW', {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false});
-                    deadlineBanner.style.display = 'block';
-                } else {
-                    deadlineDate = null;
-                    deadlineFullDateDisplay.textContent = '(未設定)';
-                    deadlineBanner.style.display = 'none';
-                }
-
-                isManualClosed = data.isOrderClosed === true;
-                
-                startCountdown();
-                updateFormState(isManualClosed);
-                
-                processPriceChanges(data.comparisonSummary);
-                renderMenu(data);
-                
-                currentSessionId = data.sessionId;
-                if (currentSessionId) {
-                    setupOrderListener(currentSessionId);
-                }
-                
-                cartItems = [];
-                updateCartUI();
-
-                // --- v12.0: 菜單載入完成後，嘗試讀取使用者記憶 ---
-                const userPrefs = loadUserPreferences();
-                if (userPrefs && userPrefs.name && userPrefs.avatar) {
-                    // 自動填入資料
-                    usernameInput.value = userPrefs.name;
-                    const avatarEl = Array.from(document.querySelectorAll('.avatar-option')).find(el => el.textContent === userPrefs.avatar);
-                    if (avatarEl) {
-                        selectAvatar(avatarEl, userPrefs.avatar);
-                    }
-                    // 觸發查詢歷史紀錄
-                    checkAndDisplayLastOrder(userPrefs.name, currentRestaurantName);
-                }
-                // --------------------------------------------------
-
-            } else {
-                menuContainer.innerHTML = '<p style="text-align: center;">今日尚未發布菜單...</p>';
-                deadlineBanner.style.display = 'none';
-                personalWelcomeSection.style.display = 'none'; // v12.0 隱藏歡迎區塊
-                mapLinkContainer.innerHTML = '';
-                if (countdownInterval) clearInterval(countdownInterval);
-                updateFormState(true); 
-            }
-        });
 
         // 倒數計時功能 (只負責顯示)
         function startCountdown() {
@@ -598,15 +731,6 @@
             };
             updateTimer();
             countdownInterval = setInterval(updateTimer, 1000);
-        }
-
-        function processPriceChanges(summary) {
-            priceChangeMap.clear();
-            if (summary && summary.changedItems) {
-                summary.changedItems.forEach(item => {
-                    priceChangeMap.set(item.name, item.newPrice - item.oldPrice);
-                });
-            }
         }
 
         function updateFormState(isLocked) {
@@ -689,11 +813,6 @@
             el.style.transitionDelay = `${globalItemIndex * 0.025}s`;
             globalItemIndex++;
 
-            let priceNoteHtml = '';
-            if (priceChangeMap.has(item.name)) {
-                const diff = priceChangeMap.get(item.name);
-                priceNoteHtml = diff > 0 ? `<span class="price-note-up">(漲${diff})</span>` : `<span class="price-note-down">(降${Math.abs(diff)})</span>`;
-            }
             const dishIcon = getIconForDish(item.name);
 
             el.innerHTML = `
@@ -701,7 +820,7 @@
                     <div class="food-icon-wrapper">${dishIcon}</div>
                     <div class="food-info">
                         <span>${item.name}</span>
-                        <div><b>$${item.price}</b>${priceNoteHtml}</div>
+                        <div><b>$${item.price}</b></div>
                     </div>
                 </div>
             `;
@@ -881,7 +1000,8 @@
         // --- C. 送出訂單 ---
         btnSubmitOrder.addEventListener('click', async () => {
             if (btnSubmitOrder.disabled || mainBody.classList.contains('order-closed')) return;
-            if (!currentSessionId) { alert('系統錯誤：無場次 ID'); return; }
+            // v13.0: 確保有選中場次
+            if (!currentSessionId) { alert('系統錯誤：無場次 ID，請嘗試重新整理頁面。'); return; }
             
             const userName = usernameInput.value.trim();
             btnSubmitOrder.textContent = '正在送出...';
@@ -896,6 +1016,7 @@
             const totalCost = parseInt(cartTotalPriceSpan.textContent);
 
             try {
+                // v13.0: 訂單資料結構不變，依然包含 sessionId
                 await addDoc(collection(db, "todayOrders"), {
                     sessionId: currentSessionId,
                     userName: userName,
@@ -906,7 +1027,6 @@
                     orderTime: serverTimestamp()
                 });
 
-                // v12.0: 成功送出後，儲存使用者偏好
                 saveUserPreferences(userName, selectedAvatarChar);
 
                 alert(`✅ ${userName}，訂單送出成功！`);
@@ -914,15 +1034,9 @@
                 cartItems = [];
                 updateCartUI();
                 updateMenuSelectionState();
-                // v12.0: 不需要清空輸入框和頭像，因為已經記住了
-                // usernameInput.value = '';
-                // document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
-                // selectedAvatarChar = null;
-                
                 closeCart();
                 checkSubmitButtonState();
                 
-                // v12.0: 重新觸發查詢歷史紀錄，顯示這次點的
                 checkAndDisplayLastOrder(userName, currentRestaurantName);
 
             } catch (e) {

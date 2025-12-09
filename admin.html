@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (v11.4 優化布局)</title>
+    <title>🔧 管理後台 (v13.0 多場次架構)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 基礎樣式 --- */
+        /* --- 基礎樣式 (維持 v11.4) --- */
         :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #d9534f; --success-green: #c7edb6; --warning-orange: #ffeeba; --paper-shadow: rgba(0, 0, 0, 0.15); }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
@@ -17,6 +17,18 @@
         }
         h1, h2 { text-align: center; margin-top: 0; }
         header { text-align: center; margin-bottom: 20px; }
+        
+        /* v13.0 新增：場次選擇器樣式 */
+        .session-selector-container {
+            margin: 15px auto; text-align: center;
+            padding: 10px; background: white; border: 2px dashed var(--line-color);
+            border-radius: 15px; display: inline-block;
+        }
+        #session-selector {
+            padding: 8px; font-size: 1rem; border: 2px solid var(--line-color);
+            border-radius: 5px; font-family: inherit; max-width: 300px;
+        }
+
         .session-info { font-size: 0.9rem; color: #666; margin-top: 5px;}
         
         .admin-box {
@@ -29,31 +41,13 @@
             height: fit-content;
         }
         
-        /* --- v11.4 CSS Grid 布局優化 --- */
-        .admin-main-grid {
-            display: grid;
-            grid-template-columns: 1fr; /* 手機預設單欄 */
-            gap: 25px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* 大螢幕 (平板橫向以上) 改為雙欄並排 */
+        /* --- CSS Grid 布局 (維持 v11.4) --- */
+        .admin-main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; max-width: 1200px; margin: 0 auto; }
         @media (min-width: 900px) {
-            .admin-main-grid {
-                grid-template-columns: 1fr 1fr; /* 兩個等寬的欄位 */
-                align-items: start;
-            }
-            /* 特殊區塊設定：跨越兩欄 */
-            .history-box, .publish-box {
-                grid-column: 1 / -1; /* 從第一條線跨到最後一條線 */
-            }
-            /* 讓統整區和明細區高度盡量一致 (非強制) */
-            .summary-box, .details-box {
-                 align-self: stretch; 
-            }
+            .admin-main-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+            .history-box, .publish-box { grid-column: 1 / -1; }
+            .summary-box, .details-box { align-self: stretch; }
         }
-        /* -------------------------------- */
 
         .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem;}
         .order-table th, .order-table td { border: 2px solid var(--line-color); padding: 8px; text-align: center; vertical-align: middle; background: white;}
@@ -72,6 +66,7 @@
         .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
         .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
         .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
+        .btn-delete-session { background: var(--danger-red); color: white; margin-left: 10px;}
 
         .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 20px; max-width: 1200px; margin-left: auto; margin-right: auto;}
         
@@ -104,10 +99,6 @@
         .summary-list { list-style: disc; padding-left: 20px; margin: 0;}
         .summary-list li { margin-bottom: 8px; font-size: 1rem; }
         
-        /* v11.4: 移除統整區的滾動限制，讓它完整顯示 */
-        .summary-container-wrapper { /* 不再設定 max-height */ }
-
-        /* 歷史紀錄保持滾動 */
         .history-container-wrapper { max-height: 300px; overflow-y: auto; padding-right: 5px;}
         .history-list { list-style: none; padding: 0; margin: 0;}
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd; background: white;}
@@ -126,20 +117,30 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (v11.4 優化布局)</h1>
-        <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg);"></div>
+        <h1>🔧 管理後台 (v13.0 多場次架構)</h1>
+        
+        <div class="session-selector-container">
+            <label for="session-selector" style="font-weight: bold;">選擇要管理的餐廳場次：</label>
+            <br>
+            <select id="session-selector">
+                <option value="">(讀取中...)</option>
+            </select>
+             <button id="btn-delete-session" class="btn btn-delete-session" style="display: none;">🗑️ 刪除此場次</button>
+        </div>
+
+        <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg); margin-top: 10px;">(請先選擇場次)</div>
         <div class="session-info">
-            <span id="current-session-id">載入中...</span>
+            <span id="current-session-id"></span>
             <span id="status-badge" class="status-badge" style="display: none;"></span>
         </div>
-        <div id="deadline-display" style="font-size: 1rem; color: var(--danger-red); font-weight: bold; margin-top: 10px; background: white; padding: 5px 10px; border-radius: 10px; border: 2px dashed var(--danger-red); display: inline-block; transform: rotate(1deg);"></div>
+        <div id="deadline-display" style="font-size: 1rem; color: var(--danger-red); font-weight: bold; margin-top: 10px; background: white; padding: 5px 10px; border-radius: 10px; border: 2px dashed var(--danger-red); display: inline-block; transform: rotate(1deg); display: none;"></div>
     </header>
 
     <div class="header-actions">
         <div class="close-order-section">
             <div style="text-align: left;">
                 <p style="margin: 5px 0; font-weight: bold; font-size: 1.2rem;">手動點餐開關</p>
-                <p id="close-order-hint" style="font-size: 0.9rem; margin: 5px 0 0 0; color: #666;">(載入中...)</p>
+                <p id="close-order-hint" style="font-size: 0.9rem; margin: 5px 0 0 0; color: #666;">(請先選擇場次)</p>
             </div>
              <label class="switch-container">
                 <input type="checkbox" id="toggle-order-status" class="switch-input" disabled>
@@ -158,16 +159,16 @@
         
         <section class="admin-box summary-box" style="background: var(--accent-pink);">
             <h2>☎️ 訂單統整 (打電話用)</h2>
-            <div id="summary-header" class="summary-header-info">讀取中...</div>
+            <div id="summary-header" class="summary-header-info">請先選擇場次...</div>
             <div class="summary-container-wrapper">
                 <ul id="aggregated-order-list" class="summary-list">
-                    <li>計算中...</li>
+                    <li>---</li>
                 </ul>
             </div>
         </section>
 
         <section class="admin-box details-box">
-            <h2>💰 訂單明細與管理 (當前場次)</h2>
+            <h2>💰 訂單明細與管理</h2>
             <div style="overflow-x: auto;">
                 <table class="order-table">
                     <thead>
@@ -181,7 +182,8 @@
                         </tr>
                     </thead>
                     <tbody id="order-table-body">
-                        </tbody>
+                        <tr><td colspan="6">請先選擇場次</td></tr>
+                    </tbody>
                     <tfoot>
                         <tr style="font-weight: bold; background: #f0f0f0;">
                             <td colspan="2" style="text-align: right;">當前場次合計:</td>
@@ -205,7 +207,7 @@
 
         <section class="admin-box publish-box">
             <h2>📤 開啟新團購 & 發布菜單</h2>
-            <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。</p>
+            <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。<b>(v13.0: 發布後將新增一個獨立場次)</b></p>
             <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
             
             <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結">
@@ -218,9 +220,12 @@
             <button id="publish-btn" class="btn btn-new-session">🚀 發布新菜單 (開啟新場次)</button>
         </section>
 
-    </div> <script type="module">
+    </div>
+
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // v13.0: 引入 addDoc 用於發布新場次
+        import { getFirestore, doc, setDoc, updateDoc, deleteDoc, addDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyDCDl7YuEixL8T_0Iemjq9soqqgg_fP0yI",
@@ -235,6 +240,9 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // DOM
+        const sessionSelector = document.getElementById('session-selector');
+        const btnDeleteSession = document.getElementById('btn-delete-session');
         const adminRestaurantName = document.getElementById('admin-restaurant-name');
         const currentSessionIdDisplay = document.getElementById('current-session-id');
         const statusBadge = document.getElementById('status-badge');
@@ -253,59 +261,113 @@
         const deadlineDisplay = document.getElementById('deadline-display');
         const adminMapUrlInput = document.getElementById('admin-map-url');
 
-        let currentSessionId = null;
+        let currentSessionDocId = null; // v13.0: 當前選中的場次文件 ID
+        let currentSessionData = null;
         let unsubscribeOrders = null;
-        let currentMenuData = null;
         let isOrderClosed = false;
         let deadlineDate = null;
         let checkTimer = null;
+        let activeSessionsMap = new Map(); // 儲存所有活躍場次的資料
 
-        onSnapshot(doc(db, "dailyData", "menu"), (docSnap) => {
-            if (docSnap.exists()) {
-                currentMenuData = docSnap.data();
-                adminRestaurantName.textContent = currentMenuData.restaurantName || '今日餐廳';
-                currentSessionId = currentMenuData.sessionId || 'unknown_session';
-                currentSessionIdDisplay.textContent = `場次 ID: ${currentSessionId}`;
-                
-                isOrderClosed = currentMenuData.isOrderClosed === true;
-                statusBadge.style.display = 'inline-block';
+        // --- A. v13.0 新增：監聽所有活躍場次並更新選擇器 ---
+        // 這裡監聽新的 activeSessions 集合，而不是舊的 dailyData/menu
+        const qActiveSessions = query(collection(db, "activeSessions"), orderBy("createdAt", "desc"));
+        onSnapshot(qActiveSessions, (snapshot) => {
+            activeSessionsMap.clear();
+            sessionSelector.innerHTML = '<option value="">-- 請選擇一個場次 --</option>';
+            
+            if (snapshot.empty) {
+                sessionSelector.innerHTML = '<option value="">(目前沒有活躍場次)</option>';
+                resetAdminView();
+                return;
+            }
 
-                if (currentMenuData.deadlineTimestamp) {
-                    deadlineDate = currentMenuData.deadlineTimestamp.toDate();
-                    deadlineDisplay.textContent = `(今日截止: ${deadlineDate.toLocaleString('zh-TW', {hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'})})`;
-                } else {
-                    deadlineDate = null;
-                    deadlineDisplay.textContent = '(未設定截止時間)';
-                }
-                
-                startStatusCheck();
-                
-                let dateStr = '未知日期';
-                if (currentMenuData.updatedAt) {
-                    dateStr = new Date(currentMenuData.updatedAt.seconds * 1000).toLocaleString('zh-TW');
-                }
-                summaryHeader.innerHTML = `訂餐日期: ${dateStr}<br>餐廳電話: ${currentMenuData.restaurantPhone || '(無)'}`;
-                
-                if (currentMenuData.restaurantMapUrl) {
-                    adminMapUrlInput.value = currentMenuData.restaurantMapUrl;
-                } else {
-                    adminMapUrlInput.value = '';
-                }
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                activeSessionsMap.set(doc.id, data);
+                const option = document.createElement('option');
+                option.value = doc.id;
+                // 顯示餐廳名稱和建立時間
+                const createdTime = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '未知時間';
+                option.textContent = `${data.restaurantName} (建立於 ${createdTime})`;
+                sessionSelector.appendChild(option);
+            });
 
-                setupOrderListener(currentSessionId);
-            } else {
-                if (checkTimer) clearInterval(checkTimer);
-                adminRestaurantName.textContent = '尚未發布';
-                summaryHeader.textContent = '等待發布菜單...';
-                statusBadge.style.display = 'none';
-                toggleOrderStatusInput.disabled = true;
-                toggleOrderStatusInput.checked = false;
-                closeOrderHint.textContent = '(請先發布菜單)';
-                deadlineDisplay.textContent = '';
-                adminMapUrlInput.value = '';
-                deadlineDate = null;
+            // 如果當前有選中的場次，嘗試保持選中狀態；否則選中第一個
+            if (currentSessionDocId && activeSessionsMap.has(currentSessionDocId)) {
+                sessionSelector.value = currentSessionDocId;
+                loadSelectedSessionData(currentSessionDocId); // 資料更新時重新載入介面
+            } else if (snapshot.size > 0) {
+                 // 預設選中最新的場次
+                 const firstDocId = snapshot.docs[0].id;
+                 sessionSelector.value = firstDocId;
+                 loadSelectedSessionData(firstDocId);
             }
         });
+
+        // 監聽選擇器變更事件
+        sessionSelector.addEventListener('change', (e) => {
+            loadSelectedSessionData(e.target.value);
+        });
+
+        // 載入選定場次的資料並更新介面
+        function loadSelectedSessionData(docId) {
+            currentSessionDocId = docId;
+            if (!docId || !activeSessionsMap.has(docId)) {
+                resetAdminView();
+                return;
+            }
+
+            currentSessionData = activeSessionsMap.get(docId);
+            
+            // 更新介面顯示
+            adminRestaurantName.textContent = currentSessionData.restaurantName || '未知餐廳';
+            currentSessionIdDisplay.textContent = `場次 ID: ${currentSessionData.sessionId}`;
+            statusBadge.style.display = 'inline-block';
+            deadlineDisplay.style.display = 'inline-block';
+            btnDeleteSession.style.display = 'inline-block'; // 顯示刪除按鈕
+
+            isOrderClosed = currentSessionData.isOrderClosed === true;
+
+            if (currentSessionData.deadlineTimestamp) {
+                deadlineDate = currentSessionData.deadlineTimestamp.toDate();
+                deadlineDisplay.textContent = `(今日截止: ${deadlineDate.toLocaleString('zh-TW', {hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'})})`;
+            } else {
+                deadlineDate = null;
+                deadlineDisplay.textContent = '(未設定截止時間)';
+            }
+
+            startStatusCheck();
+
+            let dateStr = '未知日期';
+            if (currentSessionData.createdAt) {
+                dateStr = new Date(currentSessionData.createdAt.seconds * 1000).toLocaleString('zh-TW');
+            }
+            summaryHeader.innerHTML = `訂餐日期: ${dateStr}<br>餐廳電話: ${currentSessionData.restaurantPhone || '(無)'}`;
+
+            // 設定訂單監聽器 (使用該場次的 sessionId)
+            setupOrderListener(currentSessionData.sessionId);
+        }
+
+        // 重置後台視圖 (當沒有選擇場次時)
+        function resetAdminView() {
+            currentSessionDocId = null;
+            currentSessionData = null;
+            adminRestaurantName.textContent = '(請先選擇場次)';
+            currentSessionIdDisplay.textContent = '';
+            statusBadge.style.display = 'none';
+            deadlineDisplay.style.display = 'none';
+            btnDeleteSession.style.display = 'none';
+            summaryHeader.textContent = '請先選擇場次...';
+            aggregatedListEl.innerHTML = '<li>---</li>';
+            orderTableBody.innerHTML = '<tr><td colspan="6">請先選擇場次</td></tr>';
+            updateFooterStats(0, 0);
+            if (checkTimer) clearInterval(checkTimer);
+            toggleOrderStatusInput.disabled = true;
+            toggleOrderStatusInput.checked = false;
+            closeOrderHint.textContent = '(請先選擇場次)';
+            if (unsubscribeOrders) unsubscribeOrders();
+        }
 
         function startStatusCheck() {
             if (checkTimer) clearInterval(checkTimer);
@@ -314,6 +376,8 @@
         }
 
         function updateStatusUI() {
+            if (!currentSessionDocId) return;
+
             let isTimeUp = false;
             if (deadlineDate) {
                 const now = new Date();
@@ -348,8 +412,9 @@
             }
         }
 
+        // --- v13.0 修改：手動開關現在更新選定的特定場次文件 ---
         toggleOrderStatusInput.addEventListener('change', async function() {
-            if (!currentSessionId) return;
+            if (!currentSessionDocId) return;
             
             const targetIsClosedState = !this.checked;
             
@@ -361,7 +426,8 @@
 
             if (confirm(confirmMsg)) {
                 try { 
-                    await updateDoc(doc(db, "dailyData", "menu"), { isOrderClosed: targetIsClosedState }); 
+                    // 更新 activeSessions 集合中的特定文件
+                    await updateDoc(doc(db, "activeSessions", currentSessionDocId), { isOrderClosed: targetIsClosedState }); 
                 } catch (e) { 
                     alert('操作失敗：' + e.message);
                     this.checked = !this.checked;
@@ -370,8 +436,26 @@
                 this.checked = !this.checked;
             }
         });
+        
+        // --- v13.0 新增：刪除場次功能 ---
+        btnDeleteSession.addEventListener('click', async () => {
+            if (!currentSessionDocId || !currentSessionData) return;
 
-        // --- B. 發布新菜單 ---
+            const confirmMsg = `⚠️ 危險操作 ⚠️\n\n您確定要刪除「${currentSessionData.restaurantName}」這個場次嗎？\n\n注意：這只會從列表中移除場次，該場次的訂單紀錄仍然保留在資料庫中，但將無法再透過此介面查看。\n\n請確認是否繼續？`;
+            
+            if (confirm(confirmMsg)) {
+                try {
+                    await deleteDoc(doc(db, "activeSessions", currentSessionDocId));
+                    alert('場次已刪除。');
+                    // 刪除後，onSnapshot 會自動更新，如果沒有場次了會自動重置視圖
+                } catch (e) {
+                    alert('刪除失敗：' + e.message);
+                }
+            }
+        });
+
+
+        // --- B. v13.0 修改：發布新菜單改為新增到 activeSessions ---
         publishBtn.addEventListener('click', async () => {
             const jsonString = adminJsonInput.value.trim();
             const deadlineTimeStr = deadlineTimeInput.value;
@@ -380,7 +464,7 @@
             if (!jsonString) { alert('請先貼上 JSON！'); return; }
             if (!deadlineTimeStr) { alert('請設定截止時間！'); return; }
 
-            publishBtn.textContent = '正在處理比對與發布...';
+            publishBtn.textContent = '正在處理與發布...';
             publishBtn.disabled = true;
             
             const newSessionId = 'session_' + Date.now();
@@ -390,9 +474,7 @@
                 const [hours, minutes] = deadlineTimeStr.split(':').map(Number);
                 const deadlineDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
                 
-                const oldDocSnap = await getDoc(doc(db, "dailyData", "menu"));
-                const oldMenuData = oldDocSnap.exists() ? oldDocSnap.data() : null;
-                const comparisonSummary = generateComparisonSummary(oldMenuData, newMenuData);
+                // v13.0: 不再需要比對舊資料 (comparisonSummary)，因為每次都是全新的場次
                 
                 const dataToSave = {
                     restaurantName: newMenuData.restaurantName || '未知餐廳',
@@ -401,17 +483,16 @@
                     sessionId: newSessionId,
                     isOrderClosed: false,
                     deadlineTimestamp: Timestamp.fromDate(deadlineDate),
-                    updatedAt: serverTimestamp()
+                    createdAt: serverTimestamp() // 使用 createdAt 來排序
                 };
-                if (comparisonSummary) {
-                    dataToSave.comparisonSummary = comparisonSummary;
-                }
 
                 if (newMenuData.menuCategories) dataToSave.menuCategories = newMenuData.menuCategories;
                 else if (newMenuData.menuItems) dataToSave.menuItems = newMenuData.menuItems;
 
-                await setDoc(doc(db, "dailyData", "menu"), dataToSave);
+                // v13.0: 使用 addDoc 新增到 activeSessions 集合
+                await addDoc(collection(db, "activeSessions"), dataToSave);
 
+                // 歷史紀錄部分維持不變
                 const historyData = {
                     restaurantName: dataToSave.restaurantName,
                     restaurantPhone: dataToSave.restaurantPhone,
@@ -424,7 +505,7 @@
 
                 await setDoc(doc(db, 'restaurantHistory', dataToSave.restaurantName), historyData, { merge: true });
 
-                alert(`✅ 新場次開啟成功！截止時間：${deadlineDate.toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})}`);
+                alert(`✅ 新場次「${dataToSave.restaurantName}」開啟成功！`);
                 adminJsonInput.value = '';
                 adminMapUrlInput.value = '';
             } catch (e) { 
@@ -435,45 +516,8 @@
             }
         });
 
-        function generateComparisonSummary(oldData, newData) {
-            if (!oldData || oldData.restaurantName !== newData.restaurantName) {
-                return null;
-            }
-            const oldMap = flattenMenu(oldData);
-            const newMap = flattenMenu(newData);
-            const summary = { newItems: [], changedItems: [], removedItems: [] };
-            let hasChanges = false;
 
-            newMap.forEach((price, name) => {
-                if (!oldMap.has(name)) {
-                    summary.newItems.push({ name, price });
-                    hasChanges = true;
-                } else if (oldMap.get(name) !== price) {
-                    summary.changedItems.push({ name, oldPrice: oldMap.get(name), newPrice: price });
-                    hasChanges = true;
-                }
-            });
-            oldMap.forEach((price, name) => {
-                if (!newMap.has(name)) {
-                    summary.removedItems.push({ name });
-                    hasChanges = true;
-                }
-            });
-            return hasChanges ? summary : null;
-        }
-
-        function flattenMenu(menuData) {
-            const itemsMap = new Map();
-            let itemsArray = [];
-            if (menuData.menuCategories) {
-                menuData.menuCategories.forEach(cat => { if (cat.items) itemsArray = itemsArray.concat(cat.items); });
-            } else if (menuData.menuItems) {
-                itemsArray = menuData.menuItems;
-            }
-            itemsArray.forEach(item => { itemsMap.set(item.name, item.price); });
-            return itemsMap;
-        }
-
+        // --- C. 監聽歷史紀錄 (維持不變) ---
         const historyQ = query(collection(db, 'restaurantHistory'), orderBy('lastUsed', 'desc'));
         onSnapshot(historyQ, (snapshot) => {
             historyListEl.innerHTML = '';
@@ -506,8 +550,10 @@
             });
         });
 
+        // --- D. 訂單監聽與渲染 (維持不變，但 sessionId 是動態傳入的) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
+            // 這裡依然監聽 todayOrders，但透過 sessionId 過濾出當前選擇場次的訂單
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
             unsubscribeOrders = onSnapshot(q, (querySnapshot) => {
                 renderOrders(querySnapshot);
