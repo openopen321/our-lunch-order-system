@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v15.2 購物車修正版)</title>
+    <title>✏️ 今天吃什麼？(v16.0 動態價格版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎樣式 (維持 v13.0/v14.0) --- */
@@ -930,7 +930,8 @@
                     openOptionModal(item, dishIcon, sessionId, restaurantName, uniqueId);
                 } else {
                     // 沒選項 -> 直接加入購物車 (傳遞空的 selectedOptions)
-                    addToCart(item, dishIcon, sessionId, restaurantName, {}, uniqueId);
+                    // v16.0: 沒選項時，最終價格就是原始價格
+                    addToCart(item, dishIcon, sessionId, restaurantName, {}, uniqueId, item.price);
                     openCart(1);
                 }
             });
@@ -941,7 +942,8 @@
         function openOptionModal(item, icon, sessionId, restaurantName, uniqueId) {
             tempPendingItem = { item, icon, sessionId, restaurantName, uniqueId }; // v15.1: 暫存 uniqueId
             optionModalTitle.textContent = item.name;
-            modalItemPriceSpan.textContent = item.price;
+            // v16.0: 初始顯示基礎價格
+            modalItemPriceSpan.textContent = item.price; 
             optionModalBody.innerHTML = ''; // 清空內容
             btnConfirmOption.disabled = true; // 預設停用確認按鈕
 
@@ -960,20 +962,34 @@
 
                 const choicesContainer = groupEl.querySelector('.option-choices-container');
                 group.choices.forEach((choice, choiceIndex) => {
+                    // v16.0: 處理選項價格邏輯
+                    let choiceName = choice;
+                    let priceAdj = 0;
+                    // 如果 choice 是一個物件 (例如: {name: "大杯", price: 10})
+                    if (typeof choice === 'object' && choice !== null) {
+                        choiceName = choice.name;
+                        priceAdj = choice.price || 0; // 如果沒有設定 price，預設為 0
+                    }
+
                     const inputId = `option-${groupIndex}-${choiceIndex}`;
+                    // v16.0: 顯示加價資訊
+                    const priceAdjHtml = priceAdj > 0 ? ` <span style="color: var(--danger-red); font-size: 0.85rem;">(+$${priceAdj})</span>` : '';
+
                     const choiceHtml = `
-                        <input type="radio" id="${inputId}" name="group-${groupIndex}" value="${choice}" class="option-radio-input">
+                        <input type="radio" id="${inputId}" name="group-${groupIndex}" value="${choiceName}" class="option-radio-input" data-price-adj="${priceAdj}">
                         <label for="${inputId}" class="option-radio-label">
                             <span class="radio-checkmark"></span>
-                            ${choice}
+                            ${choiceName}${priceAdjHtml}
                         </label>
                     `;
                     choicesContainer.insertAdjacentHTML('beforeend', choiceHtml);
                 });
 
-                // 監聽選項改變，檢查是否所有必選都完成了
+                // 監聽選項改變
                 groupEl.querySelectorAll('input[type="radio"]').forEach(radio => {
                     radio.addEventListener('change', checkOptionValidation);
+                    // v16.0: 選項改變時，重新計算總金額
+                    radio.addEventListener('change', calculateModalTotal);
                 });
 
                 optionModalBody.appendChild(groupEl);
@@ -983,7 +999,27 @@
             cartOverlay.classList.add('show');
             document.body.style.overflow = 'hidden';
             checkOptionValidation(); // 初始檢查
+            // v16.0: 打開時也計算一次 (雖然通常這時還沒選，但以防萬一)
+            calculateModalTotal(); 
         }
+
+        // v16.0: 新增 - 計算彈窗中的總金額
+        function calculateModalTotal() {
+            if (!tempPendingItem) return;
+            let basePrice = tempPendingItem.item.price;
+            let totalAdj = 0;
+            
+            // 找出所有被選中的 radio button
+            const checkedRadios = optionModalBody.querySelectorAll('input[type="radio"]:checked');
+            checkedRadios.forEach(radio => {
+                // 讀取 data-price-adj 屬性，並轉為數字
+                totalAdj += Number(radio.dataset.priceAdj) || 0;
+            });
+
+            // 更新介面顯示
+            modalItemPriceSpan.textContent = basePrice + totalAdj;
+        }
+
 
         // 檢查選項驗證狀態
         function checkOptionValidation() {
@@ -1027,14 +1063,18 @@
                 }
             });
 
-            // 將帶有選項的商品加入購物車 (v15.1: 傳遞 uniqueId)
+            // v16.0: 獲取最終計算出的價格
+            const finalCalculatedPrice = Number(modalItemPriceSpan.textContent);
+
+            // 將帶有選項的商品加入購物車 (v15.1: 傳遞 uniqueId, v16.0: 傳遞 finalPrice)
             addToCart(
                 tempPendingItem.item,
                 tempPendingItem.icon,
                 tempPendingItem.sessionId,
                 tempPendingItem.restaurantName,
                 selectedOptions,
-                tempPendingItem.uniqueId
+                tempPendingItem.uniqueId,
+                finalCalculatedPrice // v16.0: 使用計算後的最終價格
             );
 
             closeOptionModal();
@@ -1044,8 +1084,8 @@
 
         // --- v15.0 修改：購物車邏輯 (支援選項) ---
 
-        // 2. 加入購物車 - v15.0: 接收並儲存 selectedOptions (v15.1: 接收 uniqueId)
-        function addToCart(item, icon, sessionId, restaurantName, selectedOptions, uniqueId) {
+        // 2. 加入購物車 - v15.0: 接收並儲存 selectedOptions (v15.1: 接收 uniqueId) (v16.0: 接收 finalPrice)
+        function addToCart(item, icon, sessionId, restaurantName, selectedOptions, uniqueId, finalPrice) {
             // v15.0: 比對現有商品時，需要深度比對選項物件是否相同
             const existingItem = cartItems.find(i => 
                 i.name === item.name && 
@@ -1060,7 +1100,7 @@
             } else {
                 cartItems.push({
                     name: item.name,
-                    price: item.price,
+                    price: finalPrice, // v16.0: 使用計算後的最終價格，而非原始 item.price
                     quantity: 1,
                     note: '',
                     icon: icon,
