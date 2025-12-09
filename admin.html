@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (v14.2 修正版)</title>
+    <title>🔧 管理後台 (v15.3 價格區分版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎樣式 (維持 v13.0/v14.0) --- */
@@ -70,6 +70,12 @@
         .order-table th { background: var(--accent-yellow); }
         .text-left { text-align: left !important; }
         .item-note { background: #eee; padding: 1px 4px; border-radius: 4px; font-size: 0.8rem; color: #666; }
+        
+        /* v15.0: 餐點選項樣式 */
+        .item-options { font-size: 0.85rem; color: #666; margin-left: 5px; font-style: italic; }
+        /* v15.3: 餐點價格樣式 */
+        .item-price-tag { font-size: 0.9rem; color: var(--danger-red); font-weight: bold; margin-left: 5px; }
+        
         .paid-input { width: 70px; padding: 5px; border: 2px solid #ccc; border-radius: 5px; text-align: center; font-weight: bold; font-family: inherit;}
         .status-paid { color: green; font-weight: bold; }
         .status-debt { color: red; font-weight: bold; background: #ffe6e6;}
@@ -115,46 +121,22 @@
         .summary-list { list-style: disc; padding-left: 20px; margin: 0;}
         .summary-list li { margin-bottom: 8px; font-size: 1rem; }
         
-        /* --- v14.2 修改：歷史紀錄改為矩陣 (卡片) 排列 --- */
+        /* v14.2: 歷史紀錄矩陣 (卡片) 排列 */
         .history-container-wrapper {
-            max-height: 450px; /* 稍微增加高度 */
-            overflow-y: auto;
-            padding: 10px; /* 增加內距 */
+            max-height: 450px; overflow-y: auto; padding: 10px;
         }
-
         .history-list {
-            display: grid; /* 改用 Grid 布局 */
-            /* 自動填滿欄位，每張卡片最小寬度 180px，最大 1fr */
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 20px; /* 卡片間距 */
-            list-style: none; padding: 0; margin: 0;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px; list-style: none; padding: 0; margin: 0;
         }
-
         .history-item {
-            display: flex;
-            flex-direction: column; /* 內部垂直排列 (資訊在上，按鈕在下) */
-            justify-content: space-between;
-            background: white;
-            border: 3px solid var(--line-color); /* 加上邊框 */
-            border-radius: 15px; /* 圓角 */
-            padding: 15px;
-            box-shadow: 5px 5px 0 rgba(0,0,0,0.1); /* 卡片陰影 */
-            transition: all 0.2s;
-            height: 100%; /* 讓同一列的卡片等高 */
+            display: flex; flex-direction: column; justify-content: space-between;
+            background: white; border: 3px solid var(--line-color); border-radius: 15px;
+            padding: 15px; box-shadow: 5px 5px 0 rgba(0,0,0,0.1); transition: all 0.2s; height: 100%;
         }
-
-        .history-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 7px 7px 5px rgba(0,0,0,0.15);
-        }
-
-        /* 讓載入按鈕填滿卡片寬度 */
-        .history-item .btn-load {
-            width: 100%;
-            text-align: center;
-            margin-top: auto; /* 確保按鈕在底部 */
-        }
-        /* ------------------------------------------ */
+        .history-item:hover { transform: translateY(-3px); box-shadow: 7px 7px 5px rgba(0,0,0,0.15); }
+        .history-info { margin-bottom: 15px; text-align: center; }
+        .history-item .btn-load { width: 100%; text-align: center; margin-top: auto; }
         
         textarea, input[type="text"], input[type="time"] { 
             width: 100%; border: 2px solid var(--line-color); padding: 8px; font-family: inherit; box-sizing: border-box;
@@ -170,7 +152,7 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (v14.2 修正版)</h1>
+        <h1>🔧 管理後台 (v15.3 價格區分版)</h1>
         
         <div class="session-management-area">
             <span class="session-tabs-label">👇 點擊切換要管理的餐廳場次 👇</span>
@@ -262,8 +244,21 @@
 
         <section class="admin-box publish-box">
             <h2>📤 開啟新團購 & 發布菜單</h2>
-            <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。<b>(v14.0: 發布後將新增一個獨立場次)</b></p>
-            <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
+            <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。<b>(v15.0: 支援 options 選項欄位)</b></p>
+            <textarea id="admin-json-input" placeholder='例如:
+{
+  "restaurantName": "範例小吃",
+  "menuItems": [
+    { 
+      "name": "肉羹湯", 
+      "price": 60,
+      "options": [
+        { "name": "主食", "choices": ["飯","麵","冬粉"], "required": true },
+        { "name": "香菜", "choices": ["要","不要"], "required": true }
+      ]
+    }
+  ]
+}'></textarea>
             
             <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結">
 
@@ -610,7 +605,7 @@
             });
         });
 
-        // --- D. 訂單監聽與渲染 (維持 v13.0) ---
+        // --- D. 訂單監聽與渲染 (v15.0: 顯示選項) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
@@ -653,7 +648,17 @@
                 const itemsDetails = order.items.map(item => {
                     const qtyStr = item.quantity > 1 ? ` <b>x${item.quantity}</b>` : '';
                     const noteStr = item.note ? ` <span class="item-note">(${item.note})</span>` : '';
-            return `${item.name}${qtyStr}${noteStr}`;
+                    
+                    // v15.0: 顯示選項
+                    let optionsHtml = '';
+                    if (item.selectedOptions && Object.keys(item.selectedOptions).length > 0) {
+                        const opts = Object.entries(item.selectedOptions).map(([key, value]) => `${key}:${value}`).join(', ');
+                        optionsHtml = `<span class="item-options">[${opts}]</span>`;
+                    }
+                    // v15.3: 顯示單價
+                    const priceHtml = `<span class="item-price-tag">($${item.price})</span>`;
+
+            return `${item.name}${priceHtml}${optionsHtml}${qtyHtml}${noteHtml}`;
         }).join('<br>');
 
         tr.innerHTML = `
@@ -691,6 +696,7 @@
             catch (e) { alert('更新失敗：' + e.message); }
         }
 
+        // v15.3: 統計邏輯更新，將不同選項和「不同價格」視為不同商品
         function calculateAggregation(orders) {
             const summaryMap = {};
             let totalItemsCount = 0;
@@ -698,9 +704,27 @@
                 order.items.forEach(item => {
                     const qty = item.quantity || 1;
                     totalItemsCount += qty;
-                    if (!summaryMap[item.name]) summaryMap[item.name] = { count: 0, notes: [] };
-                    summaryMap[item.name].count += qty;
-                    if (item.note) summaryMap[item.name].notes.push(`${qty}份:${item.note}`);
+                    
+                    // v15.3: 產生唯一的 key，包含「價格」和選項資訊
+                    let itemKey = `${item.name}_${item.price}`; // 加入價格
+                    if (item.selectedOptions && Object.keys(item.selectedOptions).length > 0) {
+                        // 將選項排序後組合成字串，確保 key 的一致性
+                        const sortedOptions = Object.entries(item.selectedOptions).sort((a, b) => a[0].localeCompare(b[0]));
+                        const optsStr = sortedOptions.map(([key, value]) => `${key}:${value}`).join('|');
+                        itemKey += `[${optsStr}]`;
+                    }
+
+                    if (!summaryMap[itemKey]) {
+                        summaryMap[itemKey] = { 
+                            name: item.name,
+                            price: item.price, // v15.3: 儲存價格
+                            options: item.selectedOptions,
+                            count: 0, 
+                            notes: [] 
+                        };
+                    }
+                    summaryMap[itemKey].count += qty;
+                    if (item.note) summaryMap[itemKey].notes.push(`${qty}份:${item.note}`);
                 });
             });
             aggregatedListEl.innerHTML = '';
@@ -710,10 +734,21 @@
             totalLi.innerHTML = `<strong>📊 總共訂購：${totalItemsCount} 份餐點</strong><hr style="margin: 5px 0; border-top: 1px dashed #ccc;">`;
             aggregatedListEl.appendChild(totalLi);
 
-            for (const [foodName, data] of Object.entries(summaryMap)) {
+            for (const [itemKey, data] of Object.entries(summaryMap)) {
                 const li = document.createElement('li');
+                
+                // v15.0: 顯示選項文字
+                let optionsDisplay = '';
+                if (data.options && Object.keys(data.options).length > 0) {
+                    const opts = Object.entries(data.options).map(([key, value]) => `${value}`).join('/'); // 這裡只顯示值比較簡潔
+                    optionsDisplay = ` <span style="color:#666; font-size:0.9rem;">(${opts})</span>`;
+                }
+                
+                // v15.3: 顯示價格
+                const priceDisplay = ` <span class="item-price-tag">($${data.price})</span>`;
+
                 let noteDisplay = data.notes.length > 0 ? `<span class="summary-notes">備註: ${data.notes.join('; ')}</span>` : '';
-                li.innerHTML = `<b>${foodName}</b> x ${data.count} 份 ${noteDisplay}`;
+                li.innerHTML = `<b>${data.name}</b>${priceDisplay}${optionsDisplay} x ${data.count} 份 ${noteDisplay}`;
                 aggregatedListEl.appendChild(li);
             }
         }
