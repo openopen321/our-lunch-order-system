@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (v15.3 價格區分版)</title>
+    <title>🔧 管理後台 (v15.4 修正錯誤版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎樣式 (維持 v13.0/v14.0) --- */
@@ -152,7 +152,7 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (v15.3 價格區分版)</h1>
+        <h1>🔧 管理後台 (v15.4 修正錯誤版)</h1>
         
         <div class="session-management-area">
             <span class="session-tabs-label">👇 點擊切換要管理的餐廳場次 👇</span>
@@ -658,7 +658,8 @@
                     // v15.3: 顯示單價
                     const priceHtml = `<span class="item-price-tag">($${item.price})</span>`;
 
-            return `${item.name}${priceHtml}${optionsHtml}${qtyHtml}${noteHtml}`;
+                    // v15.4: 修正這裡的變數名稱錯誤 (qtyHtml -> qtyStr)
+                    return `${item.name}${priceHtml}${optionsHtml}${qtyStr}${noteStr}`;
         }).join('<br>');
 
         tr.innerHTML = `
