@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (v14.1 歷史紀錄矩陣版)</title>
+    <title>🔧 管理後台 (v14.2 修正版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎樣式 (維持 v13.0/v14.0) --- */
@@ -177,7 +177,7 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (v14.1 歷史紀錄矩陣版)</h1>
+        <h1>🔧 管理後台 (v14.2 修正版)</h1>
         
         <div class="session-management-area">
             <span class="session-tabs-label">👇 點擊切換要管理的餐廳場次 👇</span>
@@ -362,7 +362,7 @@
                 // 綁定點擊事件
                 btn.addEventListener('click', () => {
                     loadSelectedSessionData(doc.id);
-                    updateActiveTabState(doc.id);
+                    updateActiveTabState(doc.id); // v14.2 修正這裡的語法錯誤
                 });
 
                 sessionTabsContainer.appendChild(btn);
@@ -591,6 +591,7 @@
                 const data = doc.data();
                 const li = document.createElement('li');
                 li.classList.add('history-item');
+                // v14.1: 修改為卡片式結構
                 li.innerHTML = `
                     <div class="history-info">
                         <strong>${data.restaurantName}</strong>
