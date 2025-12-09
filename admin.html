@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (v14.0 頁籤管理版)</title>
+    <title>🔧 管理後台 (v14.1 歷史紀錄矩陣版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 基礎樣式 (維持 v13.0) --- */
+        /* --- 基礎樣式 (維持 v13.0/v14.0) --- */
         :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #d9534f; --success-green: #c7edb6; --warning-orange: #ffeeba; --paper-shadow: rgba(0, 0, 0, 0.15); }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
@@ -18,7 +18,7 @@
         h1, h2 { text-align: center; margin-top: 0; }
         header { text-align: center; margin-bottom: 20px; }
         
-        /* v14.0 改進：頁籤式場次選擇器 */
+        /* 頁籤式場次選擇器 (v14.0) */
         .session-management-area {
             margin: 20px auto; max-width: 900px;
         }
@@ -37,7 +37,6 @@
         .session-tab-btn:hover { transform: translateY(-2px); }
         .session-tab-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--line-color); }
         
-        /* 選中狀態的頁籤 */
         .session-tab-btn.active {
             background: var(--accent-yellow);
             transform: translate(2px, 2px);
@@ -58,7 +57,7 @@
             height: fit-content;
         }
         
-        /* --- CSS Grid 布局 (維持 v11.4) --- */
+        /* --- CSS Grid 布局 --- */
         .admin-main-grid { display: grid; grid-template-columns: 1fr; gap: 25px; max-width: 1200px; margin: 0 auto; }
         @media (min-width: 900px) {
             .admin-main-grid { grid-template-columns: 1fr 1fr; align-items: start; }
@@ -95,7 +94,7 @@
             box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
         }
 
-        /* 滑動開關 CSS (v11.2) */
+        /* 滑動開關 CSS */
         .switch-container { position: relative; display: inline-block; width: 120px; height: 44px; margin-left: 20px; }
         .switch-input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--danger-red); transition: .4s; border: 3px solid var(--line-color); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-weight: bold; color: white; font-size: 1.1rem; }
@@ -116,9 +115,53 @@
         .summary-list { list-style: disc; padding-left: 20px; margin: 0;}
         .summary-list li { margin-bottom: 8px; font-size: 1rem; }
         
-        .history-container-wrapper { max-height: 300px; overflow-y: auto; padding-right: 5px;}
-        .history-list { list-style: none; padding: 0; margin: 0;}
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px dashed #ddd; background: white;}
+        /* --- v14.1 修改：歷史紀錄改為矩陣 (卡片) 排列 --- */
+        .history-container-wrapper {
+            max-height: 450px; /* 稍微增加高度 */
+            overflow-y: auto;
+            padding: 10px; /* 增加內距 */
+        }
+
+        .history-list {
+            display: grid; /* 改用 Grid 布局 */
+            /* 自動填滿欄位，每張卡片最小寬度 180px，最大 1fr */
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px; /* 卡片間距 */
+            list-style: none; padding: 0; margin: 0;
+        }
+
+        .history-item {
+            display: flex;
+            flex-direction: column; /* 內部垂直排列 (資訊在上，按鈕在下) */
+            justify-content: space-between;
+            background: white;
+            border: 3px solid var(--line-color); /* 加上邊框 */
+            border-radius: 15px; /* 圓角 */
+            padding: 15px;
+            box-shadow: 5px 5px 0 rgba(0,0,0,0.1); /* 卡片陰影 */
+            transition: all 0.2s;
+            height: 100%; /* 讓同一列的卡片等高 */
+        }
+
+        .history-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 7px 7px 5px rgba(0,0,0,0.15);
+        }
+
+        .history-info {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .history-info strong {
+            font-size: 1.1rem; display: block; margin-bottom: 5px;
+        }
+
+        /* 讓載入按鈕填滿卡片寬度 */
+        .history-item .btn-load {
+            width: 100%;
+            text-align: center;
+        }
+        /* ------------------------------------------ */
         
         textarea, input[type="text"], input[type="time"] { 
             width: 100%; border: 2px solid var(--line-color); padding: 8px; font-family: inherit; box-sizing: border-box;
@@ -134,7 +177,7 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (v14.0 頁籤管理版)</h1>
+        <h1>🔧 管理後台 (v14.1 歷史紀錄矩陣版)</h1>
         
         <div class="session-management-area">
             <span class="session-tabs-label">👇 點擊切換要管理的餐廳場次 👇</span>
@@ -216,7 +259,7 @@
         </section>
         
         <section class="admin-box history-box" style="background: #f9f9f9;">
-            <h2>📜 歷史餐廳紀錄</h2>
+            <h2>📜 歷史餐廳紀錄 (點擊載入)</h2>
             <div class="history-container-wrapper">
                 <ul id="history-list" class="history-list">
                     <p>正在載入歷史紀錄...</p>
@@ -259,7 +302,6 @@
         const db = getFirestore(app);
 
         // DOM
-        // v14.0: 改用 tabs container
         const sessionTabsContainer = document.getElementById('session-tabs-container');
         const btnDeleteSession = document.getElementById('btn-delete-session');
         const adminRestaurantName = document.getElementById('admin-restaurant-name');
@@ -320,7 +362,7 @@
                 // 綁定點擊事件
                 btn.addEventListener('click', () => {
                     loadSelectedSessionData(doc.id);
-                    updateActive TabState(doc.id);
+                    updateActiveTabState(doc.id);
                 });
 
                 sessionTabsContainer.appendChild(btn);
@@ -336,7 +378,6 @@
             }
         });
 
-        // v14.0 新增：更新頁籤的選中狀態樣式
         function updateActiveTabState(activeDocId) {
             document.querySelectorAll('.session-tab-btn').forEach(btn => {
                 if (btn.dataset.docId === activeDocId) {
@@ -347,7 +388,6 @@
             });
         }
 
-        // 載入選定場次的資料並更新介面 (維持 v13.0)
         function loadSelectedSessionData(docId) {
             currentSessionDocId = docId;
             if (!docId || !activeSessionsMap.has(docId)) {
@@ -384,7 +424,6 @@
             setupOrderListener(currentSessionData.sessionId);
         }
 
-        // 重置後台視圖
         function resetAdminView() {
             currentSessionDocId = null;
             currentSessionData = null;
@@ -402,7 +441,7 @@
             toggleOrderStatusInput.checked = false;
             closeOrderHint.textContent = '(請先選擇場次)';
             if (unsubscribeOrders) unsubscribeOrders();
-            updateActiveTabState(null); // 清除所有選中狀態
+            updateActiveTabState(null);
         }
 
         function startStatusCheck() {
@@ -486,8 +525,6 @@
             }
         });
 
-
-        // --- B. 發布新菜單 (維持 v13.0) ---
         publishBtn.addEventListener('click', async () => {
             const jsonString = adminJsonInput.value.trim();
             const deadlineTimeStr = deadlineTimeInput.value;
@@ -556,8 +593,9 @@
                 li.classList.add('history-item');
                 li.innerHTML = `
                     <div class="history-info">
-                        <strong>${data.restaurantName}</strong> (點過 ${data.orderCount || 1} 次)<br>
-                        <span style="font-size: 0.9rem;">電話: ${data.restaurantPhone}</span>
+                        <strong>${data.restaurantName}</strong>
+                        <span style="font-size: 0.9rem;">(點過 ${data.orderCount || 1} 次)</span><br>
+                        <span style="font-size: 0.9rem;">電話: ${data.restaurantPhone || '無'}</span>
                     </div>
                     <button class="btn btn-load">載入菜單</button>
                 `;
