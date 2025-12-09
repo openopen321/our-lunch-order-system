@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 管理後台 (v13.0 多場次架構)</title>
+    <title>🔧 管理後台 (v14.0 頁籤管理版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 基礎樣式 (維持 v11.4) --- */
+        /* --- 基礎樣式 (維持 v13.0) --- */
         :root { --bg-color: #FFFBE6; --line-color: #4A3F35; --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --danger-red: #d9534f; --success-green: #c7edb6; --warning-orange: #ffeeba; --paper-shadow: rgba(0, 0, 0, 0.15); }
         body {
             font-family: 'Patrick Hand', 'Noto Sans TC', sans-serif;
@@ -18,16 +18,33 @@
         h1, h2 { text-align: center; margin-top: 0; }
         header { text-align: center; margin-bottom: 20px; }
         
-        /* v13.0 新增：場次選擇器樣式 */
-        .session-selector-container {
-            margin: 15px auto; text-align: center;
-            padding: 10px; background: white; border: 2px dashed var(--line-color);
-            border-radius: 15px; display: inline-block;
+        /* v14.0 改進：頁籤式場次選擇器 */
+        .session-management-area {
+            margin: 20px auto; max-width: 900px;
         }
-        #session-selector {
-            padding: 8px; font-size: 1rem; border: 2px solid var(--line-color);
-            border-radius: 5px; font-family: inherit; max-width: 300px;
+        .session-tabs-label { font-weight: bold; margin-bottom: 10px; display: block; text-align: center;}
+        .session-tabs-container {
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+            margin-bottom: 15px;
         }
+        .session-tab-btn {
+            background: white; border: 3px solid var(--line-color);
+            padding: 10px 15px; border-radius: 15px; font-family: inherit;
+            font-weight: bold; cursor: pointer; font-size: 1rem;
+            box-shadow: 3px 3px 0 var(--line-color); transition: all 0.1s;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .session-tab-btn:hover { transform: translateY(-2px); }
+        .session-tab-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--line-color); }
+        
+        /* 選中狀態的頁籤 */
+        .session-tab-btn.active {
+            background: var(--accent-yellow);
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 var(--line-color);
+        }
+        .tab-time { font-size: 0.8rem; font-weight: normal; opacity: 0.7; margin-top: 2px;}
+        .no-sessions-hint { font-style: italic; color: #888; }
 
         .session-info { font-size: 0.9rem; color: #666; margin-top: 5px;}
         
@@ -66,7 +83,7 @@
         .btn-load { background: var(--accent-blue); font-size: 0.9rem; padding: 5px 10px;}
         .btn-delete { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a;}
         .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
-        .btn-delete-session { background: var(--danger-red); color: white; margin-left: 10px;}
+        .btn-delete-session { background: var(--danger-red); color: white; font-size: 0.9rem; padding: 5px 10px; border: none; box-shadow: 2px 2px 0 #a52a2a; vertical-align: middle;}
 
         .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 20px; max-width: 1200px; margin-left: auto; margin-right: auto;}
         
@@ -117,18 +134,20 @@
 </head>
 <body>
     <header>
-        <h1>🔧 管理後台 (v13.0 多場次架構)</h1>
+        <h1>🔧 管理後台 (v14.0 頁籤管理版)</h1>
         
-        <div class="session-selector-container">
-            <label for="session-selector" style="font-weight: bold;">選擇要管理的餐廳場次：</label>
-            <br>
-            <select id="session-selector">
-                <option value="">(讀取中...)</option>
-            </select>
-             <button id="btn-delete-session" class="btn btn-delete-session" style="display: none;">🗑️ 刪除此場次</button>
+        <div class="session-management-area">
+            <span class="session-tabs-label">👇 點擊切換要管理的餐廳場次 👇</span>
+            <div id="session-tabs-container" class="session-tabs-container">
+                <span class="no-sessions-hint">(讀取中...)</span>
+            </div>
         </div>
 
-        <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg); margin-top: 10px;">(請先選擇場次)</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <div id="admin-restaurant-name" style="font-size: 1.5rem; font-weight: bold; display: inline-block; background: var(--accent-yellow); padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); transform: rotate(-1deg);">(請先選擇場次)</div>
+            <button id="btn-delete-session" class="btn btn-delete-session" style="display: none;">🗑️ 刪除此場次</button>
+        </div>
+        
         <div class="session-info">
             <span id="current-session-id"></span>
             <span id="status-badge" class="status-badge" style="display: none;"></span>
@@ -207,7 +226,7 @@
 
         <section class="admin-box publish-box">
             <h2>📤 開啟新團購 & 發布菜單</h2>
-            <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。<b>(v13.0: 發布後將新增一個獨立場次)</b></p>
+            <p style="font-size: 0.9rem;">請貼上新的巢狀 JSON 格式。<b>(v14.0: 發布後將新增一個獨立場次)</b></p>
             <textarea id="admin-json-input" placeholder='貼上 JSON (需包含 restaurantName 和 menuCategories): ...'></textarea>
             
             <input type="text" id="admin-map-url" placeholder="🗺️ (選填) 貼上餐廳 Google Maps 連結">
@@ -224,7 +243,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        // v13.0: 引入 addDoc 用於發布新場次
         import { getFirestore, doc, setDoc, updateDoc, deleteDoc, addDoc, onSnapshot, collection, query, orderBy, serverTimestamp, where, increment, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -241,7 +259,8 @@
         const db = getFirestore(app);
 
         // DOM
-        const sessionSelector = document.getElementById('session-selector');
+        // v14.0: 改用 tabs container
+        const sessionTabsContainer = document.getElementById('session-tabs-container');
         const btnDeleteSession = document.getElementById('btn-delete-session');
         const adminRestaurantName = document.getElementById('admin-restaurant-name');
         const currentSessionIdDisplay = document.getElementById('current-session-id');
@@ -261,56 +280,74 @@
         const deadlineDisplay = document.getElementById('deadline-display');
         const adminMapUrlInput = document.getElementById('admin-map-url');
 
-        let currentSessionDocId = null; // v13.0: 當前選中的場次文件 ID
+        let currentSessionDocId = null;
         let currentSessionData = null;
         let unsubscribeOrders = null;
         let isOrderClosed = false;
         let deadlineDate = null;
         let checkTimer = null;
-        let activeSessionsMap = new Map(); // 儲存所有活躍場次的資料
+        let activeSessionsMap = new Map();
 
-        // --- A. v13.0 新增：監聽所有活躍場次並更新選擇器 ---
-        // 這裡監聽新的 activeSessions 集合，而不是舊的 dailyData/menu
+        // --- A. v14.0 修改：監聽活躍場次並生成頁籤按鈕 ---
         const qActiveSessions = query(collection(db, "activeSessions"), orderBy("createdAt", "desc"));
         onSnapshot(qActiveSessions, (snapshot) => {
             activeSessionsMap.clear();
-            sessionSelector.innerHTML = '<option value="">-- 請選擇一個場次 --</option>';
+            sessionTabsContainer.innerHTML = ''; // 清空現有頁籤
             
             if (snapshot.empty) {
-                sessionSelector.innerHTML = '<option value="">(目前沒有活躍場次)</option>';
+                sessionTabsContainer.innerHTML = '<span class="no-sessions-hint">(目前沒有活躍場次)</span>';
                 resetAdminView();
                 return;
             }
 
+            let firstDocId = null;
             snapshot.forEach(doc => {
+                if (!firstDocId) firstDocId = doc.id;
                 const data = doc.data();
                 activeSessionsMap.set(doc.id, data);
-                const option = document.createElement('option');
-                option.value = doc.id;
-                // 顯示餐廳名稱和建立時間
+                
+                // 建立頁籤按鈕
+                const btn = document.createElement('button');
+                btn.classList.add('session-tab-btn');
+                btn.dataset.docId = doc.id; // 儲存 docId 在 dataset 中
+                
                 const createdTime = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '未知時間';
-                option.textContent = `${data.restaurantName} (建立於 ${createdTime})`;
-                sessionSelector.appendChild(option);
+                btn.innerHTML = `
+                    <span>🍽️ ${data.restaurantName}</span>
+                    <span class="tab-time">(${createdTime} 開團)</span>
+                `;
+
+                // 綁定點擊事件
+                btn.addEventListener('click', () => {
+                    loadSelectedSessionData(doc.id);
+                    updateActive TabState(doc.id);
+                });
+
+                sessionTabsContainer.appendChild(btn);
             });
 
-            // 如果當前有選中的場次，嘗試保持選中狀態；否則選中第一個
+            // 自動選擇邏輯
             if (currentSessionDocId && activeSessionsMap.has(currentSessionDocId)) {
-                sessionSelector.value = currentSessionDocId;
-                loadSelectedSessionData(currentSessionDocId); // 資料更新時重新載入介面
-            } else if (snapshot.size > 0) {
-                 // 預設選中最新的場次
-                 const firstDocId = snapshot.docs[0].id;
-                 sessionSelector.value = firstDocId;
+                loadSelectedSessionData(currentSessionDocId);
+                updateActiveTabState(currentSessionDocId);
+            } else if (firstDocId) {
                  loadSelectedSessionData(firstDocId);
+                 updateActiveTabState(firstDocId);
             }
         });
 
-        // 監聽選擇器變更事件
-        sessionSelector.addEventListener('change', (e) => {
-            loadSelectedSessionData(e.target.value);
-        });
+        // v14.0 新增：更新頁籤的選中狀態樣式
+        function updateActiveTabState(activeDocId) {
+            document.querySelectorAll('.session-tab-btn').forEach(btn => {
+                if (btn.dataset.docId === activeDocId) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
 
-        // 載入選定場次的資料並更新介面
+        // 載入選定場次的資料並更新介面 (維持 v13.0)
         function loadSelectedSessionData(docId) {
             currentSessionDocId = docId;
             if (!docId || !activeSessionsMap.has(docId)) {
@@ -320,12 +357,11 @@
 
             currentSessionData = activeSessionsMap.get(docId);
             
-            // 更新介面顯示
             adminRestaurantName.textContent = currentSessionData.restaurantName || '未知餐廳';
             currentSessionIdDisplay.textContent = `場次 ID: ${currentSessionData.sessionId}`;
             statusBadge.style.display = 'inline-block';
             deadlineDisplay.style.display = 'inline-block';
-            btnDeleteSession.style.display = 'inline-block'; // 顯示刪除按鈕
+            btnDeleteSession.style.display = 'inline-block';
 
             isOrderClosed = currentSessionData.isOrderClosed === true;
 
@@ -345,11 +381,10 @@
             }
             summaryHeader.innerHTML = `訂餐日期: ${dateStr}<br>餐廳電話: ${currentSessionData.restaurantPhone || '(無)'}`;
 
-            // 設定訂單監聽器 (使用該場次的 sessionId)
             setupOrderListener(currentSessionData.sessionId);
         }
 
-        // 重置後台視圖 (當沒有選擇場次時)
+        // 重置後台視圖
         function resetAdminView() {
             currentSessionDocId = null;
             currentSessionData = null;
@@ -367,6 +402,7 @@
             toggleOrderStatusInput.checked = false;
             closeOrderHint.textContent = '(請先選擇場次)';
             if (unsubscribeOrders) unsubscribeOrders();
+            updateActiveTabState(null); // 清除所有選中狀態
         }
 
         function startStatusCheck() {
@@ -412,7 +448,6 @@
             }
         }
 
-        // --- v13.0 修改：手動開關現在更新選定的特定場次文件 ---
         toggleOrderStatusInput.addEventListener('change', async function() {
             if (!currentSessionDocId) return;
             
@@ -426,7 +461,6 @@
 
             if (confirm(confirmMsg)) {
                 try { 
-                    // 更新 activeSessions 集合中的特定文件
                     await updateDoc(doc(db, "activeSessions", currentSessionDocId), { isOrderClosed: targetIsClosedState }); 
                 } catch (e) { 
                     alert('操作失敗：' + e.message);
@@ -437,7 +471,6 @@
             }
         });
         
-        // --- v13.0 新增：刪除場次功能 ---
         btnDeleteSession.addEventListener('click', async () => {
             if (!currentSessionDocId || !currentSessionData) return;
 
@@ -447,7 +480,6 @@
                 try {
                     await deleteDoc(doc(db, "activeSessions", currentSessionDocId));
                     alert('場次已刪除。');
-                    // 刪除後，onSnapshot 會自動更新，如果沒有場次了會自動重置視圖
                 } catch (e) {
                     alert('刪除失敗：' + e.message);
                 }
@@ -455,7 +487,7 @@
         });
 
 
-        // --- B. v13.0 修改：發布新菜單改為新增到 activeSessions ---
+        // --- B. 發布新菜單 (維持 v13.0) ---
         publishBtn.addEventListener('click', async () => {
             const jsonString = adminJsonInput.value.trim();
             const deadlineTimeStr = deadlineTimeInput.value;
@@ -474,8 +506,6 @@
                 const [hours, minutes] = deadlineTimeStr.split(':').map(Number);
                 const deadlineDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
                 
-                // v13.0: 不再需要比對舊資料 (comparisonSummary)，因為每次都是全新的場次
-                
                 const dataToSave = {
                     restaurantName: newMenuData.restaurantName || '未知餐廳',
                     restaurantPhone: newMenuData.restaurantPhone || '',
@@ -483,16 +513,14 @@
                     sessionId: newSessionId,
                     isOrderClosed: false,
                     deadlineTimestamp: Timestamp.fromDate(deadlineDate),
-                    createdAt: serverTimestamp() // 使用 createdAt 來排序
+                    createdAt: serverTimestamp()
                 };
 
                 if (newMenuData.menuCategories) dataToSave.menuCategories = newMenuData.menuCategories;
                 else if (newMenuData.menuItems) dataToSave.menuItems = newMenuData.menuItems;
 
-                // v13.0: 使用 addDoc 新增到 activeSessions 集合
                 await addDoc(collection(db, "activeSessions"), dataToSave);
 
-                // 歷史紀錄部分維持不變
                 const historyData = {
                     restaurantName: dataToSave.restaurantName,
                     restaurantPhone: dataToSave.restaurantPhone,
@@ -550,10 +578,9 @@
             });
         });
 
-        // --- D. 訂單監聽與渲染 (維持不變，但 sessionId 是動態傳入的) ---
+        // --- D. 訂單監聽與渲染 (維持 v13.0) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
-            // 這裡依然監聽 todayOrders，但透過 sessionId 過濾出當前選擇場次的訂單
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
             unsubscribeOrders = onSnapshot(q, (querySnapshot) => {
                 renderOrders(querySnapshot);
