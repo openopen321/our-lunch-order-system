@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v14.0 跨餐廳購物車)</title>
+    <title>✏️ 今天吃什麼？(v15.1 同名商品修正版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 基礎樣式 (維持 v13.0) --- */
+        /* --- 基礎樣式 (維持 v13.0/v14.0) --- */
         :root {
             --bg-color: #FFFBE6; --line-color: #4A3F35;
             --accent-yellow: #FFEF9F; --accent-pink: #FFC4C4; --accent-blue: #C4E4FF; --accent-green: #C7EDB6;
@@ -105,9 +105,6 @@
         .countdown-timer { font-size: 1.5rem; font-weight: bold; color: var(--danger-red); background: white; padding: 5px 15px; border-radius: 10px; border: 2px solid var(--line-color); display: inline-block; margin-top: 5px;}
         .countdown-ended { color: var(--disabled-text); background: #eee; border-color: #aaa;}
 
-        .price-note-up { color: var(--danger-red); font-size: 0.85rem; margin-left: 3px; font-weight: bold;}
-        .price-note-down { color: var(--success-green); font-size: 0.85rem; margin-left: 3px; font-weight: bold;}
-
         body.order-closed .hand-drawn-box {
             opacity: 0.8; filter: grayscale(0.8); pointer-events: none;
             outline: 3px solid #aaa !important; border-radius: 10px !important; 
@@ -139,6 +136,16 @@
             transform: translateY(30px) scale(0.9); 
             box-shadow: none;
             display: flex; flex-direction: column;
+            position: relative; /* v15.0: 為了定位 "必選" 標籤 */
+        }
+
+        /* v15.0: 顯示該餐點有選項的標籤 */
+        .has-options-badge {
+            position: absolute; top: -8px; right: -8px;
+            background: var(--accent-blue); color: var(--line-color);
+            font-size: 0.75rem; padding: 2px 6px; border-radius: 10px;
+            border: 2px solid var(--line-color); font-weight: bold;
+            transform: rotate(5deg); z-index: 2;
         }
 
         .menu-item-checkbox.show {
@@ -256,8 +263,16 @@
         .cart-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
         .cart-item-name { font-weight: bold; font-size: 1.1rem; }
         .cart-item-price { font-weight: bold; color: var(--danger-red); }
-        /* v14.0 新增：購物車商品來源餐廳標示 */
-        .cart-item-source { font-size: 0.85rem; color: #666; margin-bottom: 10px; font-style: italic; border-bottom: 1px dashed #ccc; padding-bottom: 5px;}
+        .cart-item-source { font-size: 0.85rem; color: #666; margin-bottom: 5px; font-style: italic;}
+        
+        /* v15.0: 購物車中顯示已選選項的樣式 */
+        .cart-item-options {
+            font-size: 0.9rem; color: var(--line-color); background: #f0f0f0;
+            padding: 5px 10px; border-radius: 8px; margin-bottom: 10px;
+            border: 1px dashed #ccc;
+        }
+        .cart-option-tag { display: inline-block; margin-right: 8px; }
+        .cart-option-tag b { margin-right: 3px; }
 
         .cart-item-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 10px;}
         .cart-qty-controls { display: flex; align-items: center; gap: 10px; }
@@ -308,6 +323,59 @@
         .welcome-text { font-size: 1.1rem; font-weight: bold; margin: 0 0 10px 0; }
         .last-order-info { font-size: 0.95rem; color: #555; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 10px; border: 2px dashed var(--line-color);}
         .last-order-item { display: inline-block; margin: 2px 5px; font-weight: bold;}
+
+        /* --- v15.0 新增：選項彈窗 (Modal) 樣式 --- */
+        .option-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+            width: 90%; max-width: 400px; background: #FFFBE6;
+            border-radius: 20px; border: 4px solid var(--line-color);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 110;
+            opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            max-height: 90vh; display: flex; flex-direction: column;
+        }
+        .option-modal.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+
+        .option-modal-header {
+            padding: 15px 20px; background: var(--accent-yellow); border-bottom: 3px dashed var(--line-color);
+            border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center;
+        }
+        .option-modal-title { margin: 0; font-size: 1.3rem; font-weight: bold; }
+        .option-modal-close { background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--line-color); line-height: 1; }
+
+        .option-modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
+        
+        .option-group { margin-bottom: 20px; }
+        .option-group-title { font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; }
+        .required-badge { background: var(--danger-red); color: white; font-size: 0.75rem; padding: 2px 5px; border-radius: 5px; margin-left: 8px; }
+
+        .option-choices-container { display: flex; flex-wrap: wrap; gap: 10px; }
+        
+        /* 美化 Radio Button */
+        .option-radio-label {
+            display: flex; align-items: center; cursor: pointer; position: relative;
+            padding: 8px 12px; background: white; border: 2px solid var(--line-color);
+            border-radius: 10px; font-size: 0.95rem; transition: all 0.2s;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+        }
+        .option-radio-input { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
+        .radio-checkmark {
+            height: 18px; width: 18px; background-color: #eee; border-radius: 50%;
+            border: 2px solid var(--line-color); margin-right: 8px; display: flex; align-items: center; justify-content: center;
+        }
+        .radio-checkmark:after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--line-color); display: none; }
+        
+        /* 選中狀態 */
+        .option-radio-input:checked ~ .option-radio-label {
+            background: var(--accent-blue); transform: translate(1px, 1px); box-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+        }
+        .option-radio-input:checked ~ .option-radio-label .radio-checkmark:after { display: block; }
+
+        .option-modal-footer {
+            padding: 15px 20px; border-top: 3px dashed var(--line-color);
+            display: flex; justify-content: space-between; align-items: center;
+            background: white; border-radius: 0 0 16px 16px;
+        }
+        .modal-price-display { font-size: 1.2rem; font-weight: bold; color: var(--danger-red); }
     </style>
 </head>
 <body id="main-body">
@@ -411,6 +479,20 @@
             </div>
         </div>
     </div>
+    
+    <div id="option-modal" class="option-modal">
+        <div class="option-modal-header">
+            <h3 id="option-modal-title" class="option-modal-title">餐點選項</h3>
+            <button id="option-modal-close" class="option-modal-close">×</button>
+        </div>
+        <div id="option-modal-body" class="option-modal-body">
+            </div>
+        <div class="option-modal-footer">
+            <div class="modal-price-display">$<span id="modal-item-price">0</span></div>
+            <button id="btn-confirm-option" class="cart-btn cart-btn-primary" disabled>加入購物車</button>
+        </div>
+    </div>
+
     <div id="cart-overlay" class="cart-overlay"></div>
 
 
@@ -472,20 +554,29 @@
         const btnBackToCart = document.getElementById('btn-back-to-cart');
         const btnSubmitOrder = document.getElementById('btn-submit-order');
 
+        // v15.0: 選項彈窗 DOM
+        const optionModal = document.getElementById('option-modal');
+        const optionModalTitle = document.getElementById('option-modal-title');
+        const optionModalBody = document.getElementById('option-modal-body');
+        const optionModalCloseBtn = document.getElementById('option-modal-close');
+        const modalItemPriceSpan = document.getElementById('modal-item-price');
+        const btnConfirmOption = document.getElementById('btn-confirm-option');
+
         let appState = 'lobby';
 
         let selectedAvatarChar = null;
         let cartItems = []; 
-        // v14.0: currentSessionId 只代表「當前正在瀏覽的餐廳」，不代表購物車的所有商品
         let currentViewingSessionId = null; 
         let currentRestaurantName = null;
         let unsubscribeOrders = null;
         let isManualClosed = false;
         let deadlineDate = null;
         let countdownInterval = null;
-        let priceChangeMap = new Map(); 
         let globalItemIndex = 0;
         let currentCartStep = 1;
+
+        // v15.0: 暫存正在選擇選項的商品
+        let tempPendingItem = null; 
 
         // --- 大廳邏輯 ---
         const qActiveSessions = query(collection(db, "activeSessions"), orderBy("createdAt", "desc"));
@@ -549,7 +640,6 @@
             backToLobbyBtn.style.display = 'inline-block';
             cartFab.style.display = 'flex';
 
-            // v14.0: 切換餐廳時，不再清空購物車 (cartItems)
             resetViewingSessionData(); 
             currentViewingSessionId = data.sessionId;
             currentRestaurantName = data.restaurantName;
@@ -590,7 +680,6 @@
                 setupOrderListener(currentViewingSessionId);
             }
             
-            // v14.0: 進入點餐介面時，更新購物車 UI (顯示跨餐廳商品)及按鈕狀態
             updateCartUI();
             updateMenuSelectionState();
 
@@ -617,24 +706,18 @@
             lobbySection.style.display = 'block';
             orderingSection.style.display = 'none';
             backToLobbyBtn.style.display = 'none';
-            // v14.0: 在大廳也顯示購物車按鈕，方便查看
-            // cartFab.style.display = 'none'; 
             closeCart();
-            // v14.0: 回到大廳時，不清空購物車
+            closeOptionModal(); // 確保選項彈窗關閉
             resetViewingSessionData();
         }
 
-        // v14.0: 重新命名為 resetViewingSessionData，明確表示只重置「當前瀏覽」的資料，不重置購物車
         function resetViewingSessionData() {
             currentViewingSessionId = null;
             currentRestaurantName = null;
-            // selectedAvatarChar = null; // v14.0: 不重置頭像選擇
-            // cartItems = []; // v14.0: 絕對不清空購物車
-            priceChangeMap.clear();
             globalItemIndex = 0;
-            // currentCartStep = 1; // v14.0: 保持購物車步驟
             isManualClosed = false;
             deadlineDate = null;
+            tempPendingItem = null;
             if (countdownInterval) clearInterval(countdownInterval);
             if (unsubscribeOrders) unsubscribeOrders();
             
@@ -642,9 +725,6 @@
             liveStatusList.innerHTML = '<p style="text-align: center;">讀取中...</p>';
             totalPeopleCountSpan.textContent = '0';
             personalWelcomeSection.style.display = 'none';
-            // usernameInput.value = ''; // v14.0: 不重置輸入框
-            // document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
-            // updateCartUI(); // v14.0: 不需要在此更新UI
         }
 
 
@@ -688,10 +768,18 @@
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     const lastOrder = querySnapshot.docs[0].data();
+                    // v15.0: 顯示上次訂單的選項
                     let itemsHtml = lastOrder.items.map(item => {
                         const qtyHtml = item.quantity > 1 ? ` x${item.quantity}` : '';
                         const noteHtml = item.note ? ` (${item.note})` : '';
-                        return `<span class="last-order-item">${item.name}${qtyHtml}${noteHtml}</span>`;
+                        
+                        let optionsHtml = '';
+                        if (item.selectedOptions && Object.keys(item.selectedOptions).length > 0) {
+                            const opts = Object.entries(item.selectedOptions).map(([key, value]) => `${key}:${value}`).join(', ');
+                            optionsHtml = ` <span style="font-size:0.85rem; color:#666;">[${opts}]</span>`;
+                        }
+                        
+                        return `<span class="last-order-item">${item.name}${optionsHtml}${qtyHtml}${noteHtml}</span>`;
                     }).join('、');
                     
                     const orderDate = lastOrder.orderTime ? new Date(lastOrder.orderTime.seconds * 1000).toLocaleDateString('zh-TW') : '之前的某天';
@@ -732,8 +820,6 @@
         function updateFormState(isLocked) {
             if (isLocked) {
                 mainBody.classList.add('order-closed');
-                // v14.0: 結單時不強制關閉購物車，因為購物車裡可能還有其他餐廳的商品
-                // closeCart(); 
             } else {
                 mainBody.classList.remove('order-closed');
             }
@@ -767,7 +853,8 @@
 
         function renderMenu(data) {
             menuContainer.innerHTML = '';
-            globalItemIndex = 0;
+            globalItemIndex = 0; // 重置索引，但這不影響唯一 ID
+            
             if (data.menuCategories && Array.isArray(data.menuCategories)) {
                 data.menuCategories.forEach(category => {
                     const titleEl = document.createElement('div');
@@ -776,19 +863,25 @@
                     menuContainer.appendChild(titleEl);
                     const listEl = document.createElement('div');
                     listEl.classList.add('menu-grid');
-                    // v14.0: 傳遞 sessionId 和 restaurantName
-                    category.items.forEach(item => { listEl.appendChild(createMenuItemElement(item, data.sessionId, data.restaurantName)); });
+                    // v15.1: 產生唯一 ID
+                    category.items.forEach((item, index) => { 
+                        const uniqueId = `menu-item-${globalItemIndex++}`;
+                        listEl.appendChild(createMenuItemElement(item, data.sessionId, data.restaurantName, uniqueId)); 
+                    });
                     menuContainer.appendChild(listEl);
                 });
             } else if (data.menuItems && Array.isArray(data.menuItems)) {
                 const listEl = document.createElement('div');
                 listEl.classList.add('menu-grid');
-                // v14.0: 傳遞 sessionId 和 restaurantName
-                data.menuItems.forEach(item => { listEl.appendChild(createMenuItemElement(item, data.sessionId, data.restaurantName)); });
+                // v15.1: 產生唯一 ID
+                data.menuItems.forEach((item, index) => { 
+                    const uniqueId = `menu-item-${globalItemIndex++}`;
+                    listEl.appendChild(createMenuItemElement(item, data.sessionId, data.restaurantName, uniqueId)); 
+                });
                 menuContainer.appendChild(listEl);
             } else { menuContainer.innerHTML = '<p>菜單資料格式錯誤或為空。</p>'; }
             setupScrollAnimations();
-            updateMenuSelectionState(); // 渲染後更新選中狀態
+            updateMenuSelectionState();
         }
 
         function setupScrollAnimations() {
@@ -803,18 +896,22 @@
             document.querySelectorAll('.menu-item-checkbox').forEach(item => observer.observe(item));
         }
 
-        // --- v14.0 核心：跨餐廳購物車邏輯 ---
+        // --- v15.0 核心：選項彈窗邏輯 ---
 
-        // 1. 建立菜單項目 (點擊加入購物車) - v14.0: 接收 session 和 restaurant 資訊
-        function createMenuItemElement(item, sessionId, restaurantName) {
+        // v15.1: 接收 uniqueId
+        function createMenuItemElement(item, sessionId, restaurantName, uniqueId) {
             const el = document.createElement('div');
             el.classList.add('menu-item-checkbox');
+            el.dataset.menuItemId = uniqueId; // v15.1: 儲存唯一 ID
             el.style.transitionDelay = `${globalItemIndex * 0.025}s`;
-            globalItemIndex++;
-
+            
             const dishIcon = getIconForDish(item.name);
+            // v15.0: 檢查是否有選項，並顯示標籤
+            const hasOptions = item.options && Array.isArray(item.options) && item.options.length > 0;
+            const optionsBadge = hasOptions ? '<span class="has-options-badge">有選項</span>' : '';
 
             el.innerHTML = `
+                ${optionsBadge}
                 <div class="menu-item-header">
                     <div class="food-icon-wrapper">${dishIcon}</div>
                     <div class="food-info">
@@ -826,17 +923,136 @@
             
             el.addEventListener('click', () => {
                 if (mainBody.classList.contains('order-closed')) return;
-                // v14.0: 傳遞 session 和 restaurant 資訊給 addToCart
-                addToCart(item, dishIcon, sessionId, restaurantName);
-                openCart(1); 
+                
+                // v15.0: 判斷點擊行為 (v15.1: 傳遞 uniqueId)
+                if (hasOptions) {
+                    // 有選項 -> 打開彈窗
+                    openOptionModal(item, dishIcon, sessionId, restaurantName, uniqueId);
+                } else {
+                    // 沒選項 -> 直接加入購物車 (傳遞空的 selectedOptions)
+                    addToCart(item, dishIcon, sessionId, restaurantName, {}, uniqueId);
+                    openCart(1);
+                }
             });
             return el;
         }
 
-        // 2. 加入購物車 - v14.0: 接收並儲存 session 和 restaurant 資訊
-        function addToCart(item, icon, sessionId, restaurantName) {
-            // v14.0: 檢查是否已存在時，也要比對 sessionId，確保是同一家餐廳的同一個商品
-            const existingItem = cartItems.find(i => i.name === item.name && i.sessionId === sessionId);
+        // 打開選項彈窗 (v15.1: 接收 uniqueId)
+        function openOptionModal(item, icon, sessionId, restaurantName, uniqueId) {
+            tempPendingItem = { item, icon, sessionId, restaurantName, uniqueId }; // v15.1: 暫存 uniqueId
+            optionModalTitle.textContent = item.name;
+            modalItemPriceSpan.textContent = item.price;
+            optionModalBody.innerHTML = ''; // 清空內容
+            btnConfirmOption.disabled = true; // 預設停用確認按鈕
+
+            // 動態產生選項群組
+            item.options.forEach((group, groupIndex) => {
+                const groupEl = document.createElement('div');
+                groupEl.classList.add('option-group');
+                groupEl.dataset.groupName = group.name;
+                groupEl.dataset.required = group.required === true;
+
+                const requiredHtml = group.required ? '<span class="required-badge">必選</span>' : '';
+                groupEl.innerHTML = `
+                    <div class="option-group-title">${group.name} ${requiredHtml}</div>
+                    <div class="option-choices-container"></div>
+                `;
+
+                const choicesContainer = groupEl.querySelector('.option-choices-container');
+                group.choices.forEach((choice, choiceIndex) => {
+                    const inputId = `option-${groupIndex}-${choiceIndex}`;
+                    const choiceHtml = `
+                        <input type="radio" id="${inputId}" name="group-${groupIndex}" value="${choice}" class="option-radio-input">
+                        <label for="${inputId}" class="option-radio-label">
+                            <span class="radio-checkmark"></span>
+                            ${choice}
+                        </label>
+                    `;
+                    choicesContainer.insertAdjacentHTML('beforeend', choiceHtml);
+                });
+
+                // 監聽選項改變，檢查是否所有必選都完成了
+                groupEl.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    radio.addEventListener('change', checkOptionValidation);
+                });
+
+                optionModalBody.appendChild(groupEl);
+            });
+
+            optionModal.classList.add('show');
+            cartOverlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            checkOptionValidation(); // 初始檢查
+        }
+
+        // 檢查選項驗證狀態
+        function checkOptionValidation() {
+            let allRequiredMet = true;
+            const groups = optionModalBody.querySelectorAll('.option-group');
+            groups.forEach(group => {
+                if (group.dataset.required === 'true') {
+                    const checkedRadio = group.querySelector('input[type="radio"]:checked');
+                    if (!checkedRadio) {
+                        allRequiredMet = false;
+                    }
+                }
+            });
+            btnConfirmOption.disabled = !allRequiredMet;
+        }
+
+        // 關閉選項彈窗
+        function closeOptionModal() {
+            optionModal.classList.remove('show');
+            // 只有在購物車也沒打開時才移除遮罩
+            if (!cartPanel.classList.contains('open')) {
+                cartOverlay.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+            tempPendingItem = null;
+        }
+
+        optionModalCloseBtn.addEventListener('click', closeOptionModal);
+        cartOverlay.addEventListener('click', closeOptionModal);
+
+        // 確認選項並加入購物車
+        btnConfirmOption.addEventListener('click', () => {
+            if (!tempPendingItem || btnConfirmOption.disabled) return;
+
+            const selectedOptions = {};
+            const groups = optionModalBody.querySelectorAll('.option-group');
+            groups.forEach(group => {
+                const checkedRadio = group.querySelector('input[type="radio"]:checked');
+                if (checkedRadio) {
+                    selectedOptions[group.dataset.groupName] = checkedRadio.value;
+                }
+            });
+
+            // 將帶有選項的商品加入購物車 (v15.1: 傳遞 uniqueId)
+            addToCart(
+                tempPendingItem.item,
+                tempPendingItem.icon,
+                tempPendingItem.sessionId,
+                tempPendingItem.restaurantName,
+                selectedOptions,
+                tempPendingItem.uniqueId
+            );
+
+            closeOptionModal();
+            openCart(1);
+        });
+
+
+        // --- v15.0 修改：購物車邏輯 (支援選項) ---
+
+        // 2. 加入購物車 - v15.0: 接收並儲存 selectedOptions (v15.1: 接收 uniqueId)
+        function addToCart(item, icon, sessionId, restaurantName, selectedOptions, uniqueId) {
+            // v15.0: 比對現有商品時，需要深度比對選項物件是否相同
+            const existingItem = cartItems.find(i => 
+                i.name === item.name && 
+                i.sessionId === sessionId &&
+                JSON.stringify(i.selectedOptions) === JSON.stringify(selectedOptions)
+            );
+
             if (existingItem) {
                 existingItem.quantity++;
             } else {
@@ -846,15 +1062,17 @@
                     quantity: 1,
                     note: '',
                     icon: icon,
-                    sessionId: sessionId, // v14.0: 儲存 sessionId
-                    restaurantName: restaurantName // v14.0: 儲存餐廳名稱
+                    sessionId: sessionId,
+                    restaurantName: restaurantName,
+                    selectedOptions: selectedOptions, // v15.0: 儲存使用者選擇的選項
+                    menuItemId: uniqueId // v15.1: 儲存來源卡片的唯一 ID
                 });
             }
             updateCartUI();
             updateMenuSelectionState(); 
         }
 
-        // 3. 更新購物車介面 - v14.0: 顯示商品來源餐廳
+        // 3. 更新購物車介面 - v15.0: 顯示已選選項
         function updateCartUI() {
             const totalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
             cartCountBadge.textContent = totalCount;
@@ -870,13 +1088,23 @@
                 cartItems.forEach((item, index) => {
                     const itemEl = document.createElement('div');
                     itemEl.classList.add('cart-item');
+
+                    // v15.0: 產生選項顯示 HTML
+                    let optionsHtml = '';
+                    if (item.selectedOptions && Object.keys(item.selectedOptions).length > 0) {
+                        const optionTags = Object.entries(item.selectedOptions).map(([key, value]) => {
+                            return `<span class="cart-option-tag"><b>${key}:</b>${value}</span>`;
+                        }).join('');
+                        optionsHtml = `<div class="cart-item-options">${optionTags}</div>`;
+                    }
+
                     itemEl.innerHTML = `
                         <div class="cart-item-header">
                             <div><span style="font-size:1.2rem">${item.icon}</span> <span class="cart-item-name">${item.name}</span></div>
                             <div class="cart-item-price">$${item.price * item.quantity}</div>
                         </div>
                         <div class="cart-item-source">來自：${item.restaurantName}</div>
-                        <div class="cart-item-controls">
+                        ${optionsHtml} <div class="cart-item-controls">
                             <div class="cart-qty-controls">
                                 <button class="cart-qty-btn minus">-</button>
                                 <span>${item.quantity}</span>
@@ -917,16 +1145,15 @@
             }
         }
 
-        // v14.0: 更新選中狀態時，只比對當前瀏覽餐廳的商品
+        // v15.1: 改為比對唯一 ID
         function updateMenuSelectionState() {
-            // 如果在大廳，不需要更新選中狀態
             if (appState === 'lobby') return;
 
             const menuCards = document.querySelectorAll('.menu-item-checkbox');
             menuCards.forEach(card => {
-                const itemName = card.querySelector('.food-info span').textContent;
-                // 檢查購物車中是否有「當前瀏覽餐廳」的該商品
-                const isInCart = cartItems.some(item => item.name === itemName && item.sessionId === currentViewingSessionId);
+                const cardId = card.dataset.menuItemId; // 取得卡片的唯一 ID
+                // v15.1: 檢查購物車中是否有任何商品的來源 ID 與此卡片相同
+                const isInCart = cartItems.some(item => item.menuItemId === cardId && item.sessionId === currentViewingSessionId);
                 if (isInCart) {
                     card.classList.add('selected');
                 } else {
@@ -943,8 +1170,11 @@
         }
         function closeCart() {
             cartPanel.classList.remove('open');
-            cartOverlay.classList.remove('show');
-            document.body.style.overflow = '';
+            // 只有在選項彈窗也沒打開時才移除遮罩
+            if (!optionModal.classList.contains('show')) {
+                cartOverlay.classList.remove('show');
+                document.body.style.overflow = '';
+            }
             setTimeout(() => { switchToCartStep(1); }, 300);
         }
 
@@ -988,12 +1218,10 @@
             const isCartEmpty = cartItems.length === 0;
             const isUserReady = selectedAvatarChar && usernameInput.value.trim() !== '';
             
-            // v14.0: 只要購物車不為空，就可以去結帳，不受當前餐廳是否結單影響 (因為可能包含其他未結單餐廳的商品)
             btnToCheckout.disabled = isCartEmpty;
             btnSubmitOrder.disabled = isCartEmpty || !isUserReady;
 
             if (isClosed) {
-                 // v14.0: 顯示更明確的提示
                  btnToCheckout.textContent = '前往結帳 (注意：本餐廳已結單)';
             } else {
                  btnToCheckout.textContent = '前往結帳 👉';
@@ -1002,7 +1230,7 @@
         }
         usernameInput.addEventListener('input', checkSubmitButtonState);
 
-        // --- v14.0 核心：送出跨餐廳訂單 ---
+        // --- v15.0 核心：送出訂單 (包含選項資料) ---
         btnSubmitOrder.addEventListener('click', async () => {
             if (btnSubmitOrder.disabled) return;
             if (cartItems.length === 0) { alert('購物車是空的！'); return; }
@@ -1011,7 +1239,6 @@
             btnSubmitOrder.textContent = '正在處理多筆訂單...';
             btnSubmitOrder.disabled = true;
 
-            // 1. 將購物車商品按 sessionId 分組
             const ordersBySession = {};
             cartItems.forEach(item => {
                 if (!ordersBySession[item.sessionId]) {
@@ -1021,16 +1248,17 @@
                         totalCost: 0
                     };
                 }
+                // v15.0: 訂單項目中包含 selectedOptions
                 ordersBySession[item.sessionId].items.push({
                     name: item.name,
                     price: item.price,
                     note: item.note,
-                    quantity: item.quantity
+                    quantity: item.quantity,
+                    selectedOptions: item.selectedOptions 
                 });
                 ordersBySession[item.sessionId].totalCost += (item.price * item.quantity);
             });
 
-            // 2. 準備送出所有訂單的 Promise 陣列
             const submissionPromises = [];
             const restaurantNames = [];
 
@@ -1038,9 +1266,8 @@
                 const sessionOrderData = ordersBySession[sessionId];
                 restaurantNames.push(sessionOrderData.restaurantName);
                 
-                // 建立送出訂單的 Promise
                 const promise = addDoc(collection(db, "todayOrders"), {
-                    sessionId: sessionId, // 使用該商品所屬的 sessionId
+                    sessionId: sessionId,
                     userName: userName,
                     userAvatar: selectedAvatarChar,
                     items: sessionOrderData.items,
@@ -1052,7 +1279,6 @@
             }
 
             try {
-                // 3. 等待所有訂單送出完成
                 await Promise.all(submissionPromises);
 
                 saveUserPreferences(userName, selectedAvatarChar);
@@ -1060,14 +1286,12 @@
                 const restaurantsStr = restaurantNames.join('、');
                 alert(`✅ ${userName}，您的訂單已成功送出給：${restaurantsStr}！`);
                 
-                // 清空購物車與狀態
                 cartItems = [];
                 updateCartUI();
                 updateMenuSelectionState();
                 closeCart();
                 checkSubmitButtonState();
                 
-                // 如果在大廳，不需要更新歷史紀錄；如果在點餐介面，更新該餐廳的紀錄
                 if (appState === 'ordering' && currentRestaurantName) {
                     checkAndDisplayLastOrder(userName, currentRestaurantName);
                 }
@@ -1079,7 +1303,7 @@
             }
         });
 
-        // --- D. 即時監聽點餐狀況 (維持 v9.1) ---
+        // --- D. 即時監聽點餐狀況 (維持 v15.0 顯示選項) ---
         function setupOrderListener(sessionId) {
             if (unsubscribeOrders) unsubscribeOrders();
             const q = query(collection(db, "todayOrders"), where("sessionId", "==", sessionId), orderBy("orderTime", "desc"));
@@ -1094,7 +1318,15 @@
                     let itemsHtml = order.items.map(item => {
                         const noteHtml = item.note ? `<span class="item-note">${item.note}</span>` : '';
                         const qtyHtml = item.quantity > 1 ? ` <b>x${item.quantity}</b>` : '';
-                        return `<div>- ${item.name}${qtyHtml} ${noteHtml}</div>`;
+                        
+                        // v15.0: 顯示選項
+                        let optionsHtml = '';
+                        if (item.selectedOptions && Object.keys(item.selectedOptions).length > 0) {
+                             const opts = Object.entries(item.selectedOptions).map(([key, value]) => `${key}:${value}`).join(', ');
+                             optionsHtml = ` <span style="font-size:0.85rem; color:#666;">[${opts}]</span>`;
+                        }
+
+                        return `<div>- ${item.name}${optionsHtml}${qtyHtml} ${noteHtml}</div>`;
                     }).join('');
                     li.innerHTML = `
                         <div class="status-user-row">
