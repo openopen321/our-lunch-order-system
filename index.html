@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ 今天吃什麼？(v15.1 同名商品修正版)</title>
+    <title>✏️ 今天吃什麼？(v15.2 購物車修正版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎樣式 (維持 v13.0/v14.0) --- */
@@ -1050,6 +1050,8 @@
             const existingItem = cartItems.find(i => 
                 i.name === item.name && 
                 i.sessionId === sessionId &&
+                // v15.2 關鍵修改：加入 uniqueId 比對，確保不同位置的同名商品被視為不同
+                i.menuItemId === uniqueId && 
                 JSON.stringify(i.selectedOptions) === JSON.stringify(selectedOptions)
             );
 
